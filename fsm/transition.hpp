@@ -62,8 +62,7 @@ public:
     ) :
         m_start_state(leaving_state),
         m_finish_state(entering_state),
-        m_should_transition_func(should_transition),
-        m_transition_callback_func([](){})
+        m_should_transition_func(should_transition)
     {
 
     }
@@ -92,7 +91,7 @@ public:
      * @param inputs The input set
      * @return true if the input will trigger the transition, false otherwise
      */
-    bool test_transition_condition(const InputsType& inputs) const {
+    bool test_transition_condition(InputsType& inputs) const {
         return m_should_transition_func(inputs);
     }
 

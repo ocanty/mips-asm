@@ -32,14 +32,14 @@ public:
      * @return An optional of transition
      */
     std::optional<transition<States, InputsType>>
-    test_for_transitions(const States& state, const InputsType& inputs) const {
+    test_for_transitions(const States& state, InputsType& inputs) const {
 
         /* if the state has transitions */
         if(m_table.count(state)) {
             /* check each possible transition this state can undergo,
              * if one matches the correct condition (against the input value) it means a transition has to occur */
             for(auto& transition : m_table.at(state)) {
-                if(transition.test_transition_contition(inputs)) {
+                if(transition.test_transition_condition(inputs)) {
                     return transition;
                 }
             }

@@ -36,15 +36,37 @@ public:
         m_transition_table.add_transition(transition);
     }
 
-    template <typename ...Args>
-    void add_transition(Args&&... t) {
-        m_transition_table.add_transition(
-                transition<States,InputsType>(std::forward<Args>(t)...)
-        );
+    /**
+     * Get the current state of the machine
+     * @return state
+     */
+    States get_state() const {
+        return m_current_state;
+    }
+
+    /**
+     * Run the FSM for one input iteration,
+     * @return The current state
+     */
+    States tick(InputsType& input) {
+        auto transition = m_transition_table.test_for_transitions(m_current_state, input);
+
+        // if a transition occured
+        if(transition != std::nullopt) {
+
+            // we need to run the callback, to run user-supplied state transition code
+            auto callback = transition.value().get_transition_callback();
+            callback(input);
+
+            // update our state
+            m_current_state = transition.value().get_transition_state();
+        }
+
+         return m_current_state;
     }
 
 private:
-
+    States m_current_state;
     ::as::transition_table<States,InputsType> m_transition_table;
 
 };
