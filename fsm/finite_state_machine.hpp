@@ -24,8 +24,16 @@ public:
     finite_state_machine() = default;
     virtual ~finite_state_machine() = default;
 
-    const transition_table<States,InputsType>& transition_table() const {
-        return m_transition_table;
+
+//    template <typename ...Args>
+//    void add_transition(Args&&... t) {
+//        m_transition_table.add_transition(
+//                transition<States,InputsType>(std::forward<Args>(t)...)
+//        );
+//    }
+
+    void add_transition(const transition<States,InputsType>& transition) {
+        m_transition_table.add_transition(transition);
     }
 
     template <typename ...Args>
