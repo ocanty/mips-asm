@@ -32,7 +32,7 @@ public:
      * @return An optional of transition
      */
     std::optional<transition<States, InputsType>>
-    test_for_transitions(const States& state, const InputsType& inputs) {
+    test_for_transitions(const States& state, const InputsType& inputs) const {
 
         /* if the state has transitions */
         if(m_table.count(state)) {
