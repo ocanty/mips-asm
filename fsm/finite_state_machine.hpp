@@ -2,8 +2,8 @@
 // Created by ocanty on 15/01/19.
 //
 
-#ifndef MIPS_ASM_TRANSITION_HPP
-#define MIPS_ASM_TRANSITION_HPP
+#ifndef MIPS_ASM_FINITE_STATE_MACHINE_HPP
+#define MIPS_ASM_FINITE_STATE_MACHINE_HPP
 
 #include <functional>
 #include "transition_table.hpp"
@@ -35,4 +35,4 @@ private:
 
 }
 
-#endif //MIPS_ASM_TRANSITION_HPP
+#endif //MIPS_ASM_FINITE_STATE_MACHINE_HPP
