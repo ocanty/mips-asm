@@ -5,6 +5,7 @@
 #ifndef MIPS_ASM_FINITE_STATE_MACHINE_HPP
 #define MIPS_ASM_FINITE_STATE_MACHINE_HPP
 
+#include <iostream>
 #include <functional>
 #include "transition_table.hpp"
 
@@ -21,7 +22,10 @@ namespace as {
 template <typename States, typename InputsType>
 class finite_state_machine {
 public:
-    finite_state_machine() = default;
+    finite_state_machine(States start_state) :
+        m_current_state(start_state) {
+
+    }
     virtual ~finite_state_machine() = default;
 
 
