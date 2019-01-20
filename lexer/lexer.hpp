@@ -12,6 +12,8 @@
 #include "../fsm/finite_state_machine.hpp"
 #include "../fsm/transition.hpp"
 
+#include "token.hpp"
+
 namespace as {
 
 class lexer {
@@ -19,53 +21,8 @@ public:
     lexer();
     virtual ~lexer() = default;
 
-    enum class token_type : signed int {
-        DIRECTIVE,
-
-
-        INVALID_TOKEN = -1
-    };
-
-    class token {
-    public:
-        /**
-         * Create a token
-         * @param type Token type
-         * @param attr Custom attribute, typically a symbol or a number tagged to that token (e.g. a label name)
-         */
-        explicit token(const token_type& type, const std::variant<std::string,std::uint32_t>& attr = 0) :
-            m_type(type),
-            m_attribute(attr)
-        { }
-
-        /**
-         * @return Token type
-         */
-        token_type getType() const {
-            return m_type;
-        }
-
-        /**
-         * @return Variable associated with the token (either a number, or a symbol)
-         */
-        std::variant<std::string,std::uint32_t> getAttribute() const {
-            return m_attribute;
-        }
-
-    private:
-        token_type  m_type;
-
-        /*
-         * An optional attribute that the token may have
-         * may be memory intensive, 
-         * i.e symbols will be repeated rather than storing a reference to a dictionary
-         * TODO: consider optimizing this
-         */
-        std::variant<std::string,std::uint32_t> m_attribute;
-    };
-
     /**
-     * Convert a string of MIPs assembly into tokens
+     * Convert a string of MIPS assembly into tokens
      * @returns vector of token
      */
     std::optional<std::vector<token>> lex(const std::string& input);
@@ -82,7 +39,11 @@ private:
         SEEK_DIRECTIVE,
 
         // Like SEEK_DIRECTIVE, but for labels
-        SEEK_LABEL,
+        SEEK_LABEL_OR_MNEMONIC,
+
+        // Seek till new line or EOF, then return to base
+        SEEK_COMMENT,
+
 
 
         INVALID_TOKEN = -1  // Unexpected token
@@ -102,6 +63,8 @@ private:
          * */
         std::string m_char;
 
+        std::size_t m_line;
+
         /* The output tokens */
         std::vector<token> m_tokens;
 
@@ -114,6 +77,10 @@ private:
 
         std::string get_buffer() {
             return m_buffer.str();
+        }
+
+        std::size_t get_line() {
+            return m_line;
         }
 
         void clear_buffer() {
