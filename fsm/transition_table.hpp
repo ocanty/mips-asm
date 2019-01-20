@@ -22,7 +22,8 @@ public:
      * @param transition
      */
     void add_transition(const transition<States, InputsType>& transition) {
-        m_table.try_emplace(transition.get_initial_state(), transition);
+        m_table.try_emplace(transition.get_initial_state());
+        m_table.at(transition.get_initial_state()).emplace_back(transition);
     }
 
     /**
@@ -53,7 +54,7 @@ private:
      *  A map, which indexed by the current state, gives the possible transitions
      *  that the current state can undergo
      */
-    std::map<States, std::vector<transition<States, InputsType>>> m_table;
+    std::map<States, std::vector<::as::transition<States, InputsType>>> m_table;
 };
 
 }
