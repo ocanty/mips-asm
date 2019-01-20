@@ -41,8 +41,8 @@ public:
     ) :
         m_start_state(leaving_state),
         m_finish_state(entering_state),
-        m_should_transition_func(should_transition),
-        m_transition_callback_func(transition_callback)
+        m_should_transition_func(std::move(should_transition)),
+        m_transition_callback_func(std::move(transition_callback))
     {
 
     }

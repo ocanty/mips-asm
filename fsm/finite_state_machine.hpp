@@ -28,7 +28,7 @@ public:
     }
     virtual ~finite_state_machine() = default;
 
-
+//    Disabled: I need to re-learn argument forwarding :(
 //    template <typename ...Args>
 //    void add_transition(Args&&... t) {
 //        m_transition_table.add_transition(
@@ -36,6 +36,11 @@ public:
 //        );
 //    }
 
+    /**
+     * Add a transition to the transition table
+     * @param transition
+     * @see transition
+     */
     void add_transition(const transition<States,InputsType>& transition) {
         m_transition_table.add_transition(transition);
     }
@@ -71,7 +76,7 @@ public:
 
 private:
     States m_current_state;
-    ::as::transition_table<States,InputsType> m_transition_table;
+    transition_table<States,InputsType> m_transition_table;
 
 };
 
