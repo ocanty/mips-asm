@@ -1,0 +1,51 @@
+
+#include "instructions.hpp"
+
+namespace as::spec {
+
+std::unordered_map<std::string, bool> instructions = {
+    {"addi"  , false},
+    {"addiu" , false},
+    {"addu"  , false},
+    {"and"   , false},
+    {"andi"  , false},
+    {"beq"   , false},
+    {"blez"  , false},
+    {"bne"   , false},
+    {"bgtz"  , false},
+    {"div"   , false},
+    {"divu"  , false},
+    {"j"     , false},
+    {"jal"   , false},
+    {"jr"    , false},
+    {"lb"    , false},
+    {"lbu"   , false},
+    {"lhu"   , false},
+    {"lui"   , false},
+    {"lw"    , false},
+    {"mfhi"  , false},
+    {"mthi"  , false},
+    {"mflo"  , false},
+    {"mtlo"  , false},
+    {"mfc0"  , false},
+    {"mult"  , false},
+    {"multu" , false},
+    {"nor"   , false},
+    {"xor"   , false},
+    {"or"    , false},
+    {"ori"   , false},
+    {"sb"    , false},
+    {"sh"    , false},
+    {"slt"   , false},
+    {"slti"  , false},
+    {"sltiu" , false},
+    {"sltu"  , false},
+    {"sll"   , false},
+    {"srl"   , false},
+    {"sra"   , false},
+    {"sub"   , false},
+    {"subu"  , false},
+    {"sw"    , false},
+};
+
+}
