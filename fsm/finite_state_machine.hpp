@@ -46,6 +46,16 @@ public:
     }
 
     /**
+     * Add multiple transitions
+     * @param transitions Vector of transitions
+     */
+    void add_transitions(const std::vector<transition<States,InputsType>>& transitions) {
+        for(auto& transition : transitions) {
+            add_transition(transition);
+        }
+    }
+
+    /**
      * Get the current state of the machine
      * @return state
      */
