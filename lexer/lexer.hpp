@@ -44,7 +44,20 @@ private:
         // Seek till new line or EOF, then return to base
         SEEK_COMMENT,
 
+        // $rs
+        SEEK_REGISTER,
 
+        // Literal
+        SEEK_LITERAL,
+
+        // IMM($reg)
+        //    _^
+        // from literal
+        SEEK_IMM_REG_PRE,
+
+        // IMM($reg)
+        //      ^^^
+        SEEK_IMM_REG,
 
         INVALID_TOKEN = -1  // Unexpected token
     };
@@ -71,7 +84,7 @@ private:
         /* Character buffer */
         std::stringstream m_buffer;
 
-        void push_token(const token_type& type, const std::variant<std::string,std::uint32_t>& attr = 0) {
+        void push_token(const token_type& type, const std::variant<std::string,std::int32_t>& attr = 0) {
             m_tokens.emplace_back(token(type, attr));
         }
 

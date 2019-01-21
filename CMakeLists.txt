@@ -9,4 +9,4 @@ add_executable(mips_asm
         fsm/transition_table.hpp
         fsm/transition.hpp
         lexer/lexer.hpp
-        lexer/lexer.cpp lexer/token_type.hpp lexer/token.hpp)
+        lexer/lexer.cpp lexer/token_type.hpp lexer/token.hpp spec/registers.hpp spec/instruction.hpp)
