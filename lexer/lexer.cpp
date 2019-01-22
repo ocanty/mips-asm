@@ -107,7 +107,7 @@ void lexer::setup_fsm() {
     {
         states::BASE,
         states::SEEK_LABEL_OR_MNEMONIC,
-        match_pattern("[a-zA-Z]"),
+        match_pattern("[_a-zA-Z]"),
         [&](lexer_data &lex) {
             // eat first character
             lex.m_buffer << lex.m_char;
@@ -119,7 +119,7 @@ void lexer::setup_fsm() {
     {
         states::SEEK_LABEL_OR_MNEMONIC,
         states::SEEK_LABEL_OR_MNEMONIC,
-        match_pattern("[a-zA-Z]"),
+        match_pattern("[_a-zA-Z]"),
 
         [&](lexer_data &lex) {
             // eat characters
@@ -217,7 +217,7 @@ void lexer::setup_fsm() {
     {
         states::SEEK_REGISTER,
         states::BASE,
-        match_pattern("[,| ]"),
+        match_pattern("[,| |\\n]"),
         [&](lexer_data &lex) {
             try {
                 int i_dec = std::stoi(lex.get_buffer());
@@ -229,6 +229,7 @@ void lexer::setup_fsm() {
             }
             catch(const std::invalid_argument& e) {
                 // if a named register
+                std::cout << lex.get_buffer();
                 if(spec::registers.count(lex.get_buffer())) {
                     // push register
                     lex.push_token(token_type::REGISTER, spec::registers.at(lex.get_buffer()));

@@ -5,10 +5,10 @@
 int main()
 {
     as::lexer test;
-    auto out = test.lex(".hello\n.text\n__start:\nadd $00,");
+    auto out = test.lex(".hello\n.text\n__start:\nadd $02, $t1, $a0");
 
     for(auto& e : out.value()) {
-        std::cout << e.getName() << " " << std::get<std::string>(e.getAttribute()) << std::endl;
+        std::cout << e.getName() << " " << std::endl;
     }
     std::cout << "Hello, World!" << std::endl;
     return 0;
