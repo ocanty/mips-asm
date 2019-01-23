@@ -15,9 +15,16 @@ enum class token_type : signed int {
     LABEL_DEFINITION,
     REGISTER,
 
-    LITERAL,
+    // A string - e.g. "hello"
+    LITERAL_STRING,
 
-    // The literal in IMM(register)
+    // A character e.g. 'h'
+    LITERAL_CHAR,
+
+    // A literal number 0x00, 247, -128, etc...
+    LITERAL_NUMBER,
+
+    // The literal (number) in IMM(register)
     LITERAL_IMM,
 
     // Register

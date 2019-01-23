@@ -47,8 +47,14 @@ private:
         // $rs
         SEEK_REGISTER,
 
-        // Literal
-        SEEK_LITERAL,
+        // Literal number
+        SEEK_NUMBER_LITERAL,
+
+        // Literal character
+        SEEK_CHAR_LITERAL,
+
+        // Literal string,
+        SEEK_STRING_LITERAL,
 
         // IMM($reg)
         //    _^

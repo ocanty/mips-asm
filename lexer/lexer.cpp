@@ -241,10 +241,76 @@ void lexer::setup_fsm() {
             }
         }
     },
+    {
+        states::BASE,
+        states::SEEK_STRING_LITERAL,
+        match_pattern("[\"]")
+    },
+
+    {
+        states::SEEK_STRING_LITERAL,
+        states::SEEK_STRING_LITERAL,
+        not_match_pattern("[\"]"),
+        [&](lexer_data &lex) {
+            lex.m_buffer << lex.m_char;
+        }
+    },
+
+
+    {
+        states::SEEK_STRING_LITERAL,
+        states::BASE,
+        match_pattern("[\"]"),
+        [&](lexer_data &lex) {
+            lex.push_token(token_type::LITERAL_STRING, lex.get_buffer());
+            lex.clear_buffer();
+        }
+    },
+
 
     {
         states::BASE,
-        states::SEEK_LITERAL,
+        states::SEEK_CHAR_LITERAL,
+        match_pattern("[']")
+    },
+
+    {
+        states::SEEK_CHAR_LITERAL,
+        states::SEEK_CHAR_LITERAL,
+        not_match_pattern("[']"),
+        [&](lexer_data &lex) {
+            lex.m_buffer << lex.m_char;
+        }
+    },
+
+
+    {
+        states::SEEK_CHAR_LITERAL,
+        states::BASE,
+        match_pattern("[']"),
+        [&](lexer_data &lex) {
+            if(lex.get_buffer().size() > 1) {
+                return on_invalid_token("Invalid character literal")(lex);
+            }
+
+            lex.push_token(token_type::LITERAL_CHAR, lex.get_buffer());
+            lex.clear_buffer();
+        }
+    },
+
+
+    {
+        states::BASE,
+        states::SEEK_NUMBER_LITERAL,
+        match_pattern("[\\-0-9\\+]"),
+        [&](lexer_data &lex) {
+            lex.m_buffer << lex.m_char;
+        }
+    },
+
+    {
+        states::SEEK_NUMBER_LITERAL,
+        states::SEEK_NUMBER_LITERAL,
         match_pattern("[0-9]"),
         [&](lexer_data &lex) {
             lex.m_buffer << lex.m_char;
@@ -252,22 +318,13 @@ void lexer::setup_fsm() {
     },
 
     {
-        states::SEEK_LITERAL,
-        states::SEEK_LITERAL,
-        match_pattern("[0-9]"),
-        [&](lexer_data &lex) {
-            lex.m_buffer << lex.m_char;
-        }
-    },
-
-    {
-        states::SEEK_LITERAL,
+        states::SEEK_NUMBER_LITERAL,
         states::BASE,
         match_pattern("[ ]"),
         [&](lexer_data &lex) {
              try {
                  int i_dec = std::stoi(lex.get_buffer());
-                 lex.push_token(token_type::LITERAL,i_dec);
+                 lex.push_token(token_type::LITERAL_NUMBER,i_dec);
              }
              catch(const std::exception& e) {
                 return on_invalid_token("Invalid number literal")(lex);
