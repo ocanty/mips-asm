@@ -9,7 +9,11 @@
 #include <functional>
 #include "transition_table.hpp"
 
+using namespace std::placeholders;
+
 namespace as {
+
+
 
 /**
  * A finite state machine implementation
@@ -22,19 +26,15 @@ namespace as {
 template <typename States, typename InputsType>
 class finite_state_machine {
 public:
-    finite_state_machine(States start_state) :
-        m_current_state(start_state) {
+    explicit finite_state_machine(States start_state) :
+        m_current_state(start_state),
+        m_on_no_transition_available(
+            std::bind(&finite_state_machine<States,InputsType>::on_no_transition_available, this, _1))
+    {
 
     }
-    virtual ~finite_state_machine() = default;
 
-//    Disabled: I need to re-learn argument forwarding :(
-//    template <typename ...Args>
-//    void add_transition(Args&&... t) {
-//        m_transition_table.add_transition(
-//                transition<States,InputsType>(std::forward<Args>(t)...)
-//        );
-//    }
+    virtual ~finite_state_machine() = default;
 
     /**
      * Add a transition to the transition table
@@ -43,6 +43,18 @@ public:
      */
     void add_transition(const transition<States,InputsType>& transition) {
         m_transition_table.add_transition(transition);
+    }
+
+
+    using no_transition_available_func = std::function<States(InputsType&)>;
+
+    /**
+     * Set the function that is called when no transition is available
+     * @param func The function
+     */
+    void set_no_transition_available_handler(
+        const no_transition_available_func& func) {
+        m_on_no_transition_available = func;
     }
 
     /**
@@ -79,12 +91,26 @@ public:
 
             // update our state
             m_current_state = transition.value().get_transition_state();
+        } else {
+            // if no transition available,
+            // ask our no transition available func what to do
+            // (this just stays in the current state by default)
+            m_current_state = m_on_no_transition_available(input);
         }
 
-         return m_current_state;
+        return m_current_state;
     }
 
 private:
+    // if no transition is possible, just deadlock in current state
+    States on_no_transition_available(const InputsType&) {
+        return m_current_state;
+    }
+
+    // on_no_transition_available is typically bound onto this std::function
+    // unless overridden by set_on_no_transition_available
+    no_transition_available_func m_on_no_transition_available;
+
     States m_current_state;
     transition_table<States,InputsType> m_transition_table;
 

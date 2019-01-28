@@ -48,13 +48,13 @@ private:
         SEEK_REGISTER,
 
         // Literal number
-        SEEK_NUMBER_LITERAL,
+        SEEK_LITERAL_NUMBER,
 
         // Literal character
-        SEEK_CHAR_LITERAL,
+        SEEK_LITERAL_CHAR,
 
         // Literal string,
-        SEEK_STRING_LITERAL,
+        SEEK_LITERAL_STRING,
 
         // IMM($reg)
         //    _^
@@ -65,7 +65,8 @@ private:
         //      ^^^
         SEEK_IMM_REG,
 
-        INVALID_TOKEN = -1  // Unexpected token
+        // An unexpected, unknown token
+        INVALID_TOKEN = -1
     };
 
     /**
@@ -91,7 +92,7 @@ private:
         std::stringstream m_buffer;
 
         void push_token(const token_type& type, const std::variant<std::string,std::int32_t>& attr = 0) {
-            m_tokens.emplace_back(token(type, attr));
+            m_tokens.emplace_back(token(type, m_line, attr));
         }
 
         std::string get_buffer() {
