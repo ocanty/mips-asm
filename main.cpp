@@ -1,15 +1,41 @@
 #include <iostream>
+#include <fstream>
+#include <algorithm>
 
 #include "lexer/lexer.hpp"
+#include "emitter/emitter.hpp"
 
 int main()
 {
-    as::lexer test;
-    auto out = test.lex(".hello\n.text\n__start:\nadd $02, $t1, $a0");
+    // Open assembly file
+    std::fstream file("test.s", std::ios::in);
 
-    for(auto& e : out.value()) {
-        std::cout << e.getName() << " " << std::endl;
+
+    // Seek to end to get size
+    file.seekg(0, std::ios_base::end);
+    auto size = file.tellg();
+
+    // Seek back to beginning
+    file.seekg(0, std::ios_base::beg);
+
+    // Create our input buffer
+    std::string input;
+    input.resize(size);
+
+    file.read(&input[0],size);
+
+    // replace tabs with correct whitespace
+    // as our lexer does not expect tabs
+    std::replace(input.begin(),input.end(),'\t',' ');
+
+    as::lexer test;
+
+    auto tokens = test.lex(input);
+
+    if(tokens != std::nullopt) {
+        as::emitter emitter;
+        auto binary = emitter.emit(tokens.value());
     }
-    std::cout << "Hello, World!" << std::endl;
+
     return 0;
 }
