@@ -48,9 +48,9 @@ enum operand_format {
     TARGET             // (J) - target
 };
 
-
 struct instruction {
-    instruction_format m_ins_format;
+    instruction_format  m_ins_format;
+    operand_format      m_operand_fmt;
 
     // Bits 31 to 26
     // For I (immediate format), the opcode is usually stored here
@@ -63,14 +63,6 @@ struct instruction {
     // The opcode in the R (register format) (as per the spec) is stored here,
     // This is known more commonly as funct value
     std::uint8_t m_lower_field;
-
-    // see:
-    // https://www.cs.cornell.edu/courses/cs3410/2008fa/MIPS_Vol2.pdf
-    // https://en.wikibooks.org/wiki/MIPS_Assembly/Instruction_Formats
-    // std::vector<asm_format> m_asm_format;
-
-    operand_format      m_operand_fmt;
-
 };
 
 }

@@ -19,21 +19,27 @@ lexer::lexer() :
 }
 
 void lexer::setup_fsm() {
-    // Generates a transition_callback_func that pushes an invalid_token for a given reason
-    auto on_invalid_token = [](const std::string& reason) -> auto {
-        return transition<states, lexer_data>::transition_callback_func(
-            [&reason](lexer_data& lex) -> void {
+    // Transition callback that will simply consume the character into the character buffer
+    auto consume_char = [&](lexer_context& lex) {
+        lex.consume(lex.ch());
+    };
+
+    // Transition callback generator that pushes an
+    // invalid_token to the token buffer for a given reason
+    auto push_invalid_token = [](const std::string& reason) -> auto {
+        return transition<states, lexer_context>::transition_callback_func(
+            [&reason](lexer_context& lex) -> void {
                 // Push invalid token with error reason
                 lex.push_token(
                     token_type::INVALID_TOKEN,
-                    reason           +
-                    " near '"        +
-                    lex.get_buffer() +
-                    "' at line "     +
-                    std::to_string(lex.get_line())
+                    reason            +
+                    " near '"         +
+                    lex.char_buffer().str() +
+                    "' at line "      +
+                    std::to_string(lex.cur_line())
                 );
 
-                lex.clear_buffer();
+                lex.clear_char_buffer();
             }
         );
     };
@@ -41,20 +47,42 @@ void lexer::setup_fsm() {
     // Generate's a should_transition_func
     // that will return true when a char matches the supplied regex
     auto match_pattern = [](const std::string& regex) -> auto {
-        return transition<states, lexer_data>::should_transition_func(
-            [=](lexer_data& lex) -> bool {
-                return std::regex_match(lex.m_char, std::regex(regex));
+        return transition<states, lexer_context>::should_transition_func(
+            [=](lexer_context& lex) -> bool {
+                return std::regex_match(std::string(1,lex.ch()), std::regex(regex));
             }
         );
     };
 
     // the above, just not'ed
     auto not_match_pattern = [](const std::string& regex) -> auto {
-        return transition<states, lexer_data>::should_transition_func(
-            [regex](lexer_data& lex) -> bool {
-                return !std::regex_match(lex.m_char, std::regex(regex));
+        return transition<states, lexer_context>::should_transition_func(
+            [regex](lexer_context& lex) -> bool {
+                return !std::regex_match(std::string(1,lex.ch()), std::regex(regex));
             }
         );
+    };
+
+    // Parses a register from a register string, expects the $ to be removed
+    // i.e. valid inputs -> "31", "02", "t0", etc...
+    // as specified in spec::registers
+    auto get_register_id = [](const std::string& lexeme) -> std::optional<std::uint8_t> {
+        // check if it's a number
+        try {
+            int i_dec = std::stoi(lexeme);
+
+            if (i_dec > 0 && i_dec < 32) {
+                return i_dec;
+            }
+        }
+        catch(const std::invalid_argument& e) {
+            // check if its a named register (if its not a number)
+            if(spec::registers.count(lexeme)) {
+                return spec::registers.at(lexeme);
+            }
+        }
+
+        return std::nullopt;
     };
 
     m_fsm.add_transitions(
@@ -62,10 +90,9 @@ void lexer::setup_fsm() {
 
     // Comma
     {
-        states::BASE,
-        states::BASE,
+        states::BASE, states::BASE,
         match_pattern("[,]"),
-        [&](lexer_data& lex) -> void {
+        [&](lexer_context& lex) -> void {
             lex.push_token(token_type::COMMA);
         }
     },
@@ -74,7 +101,7 @@ void lexer::setup_fsm() {
         states::BASE,
         states::BASE,
         match_pattern("[\\n]"),
-        [&](lexer_data& lex) -> void {
+        [&](lexer_context& lex) -> void {
             lex.push_token(token_type::NEW_LINE);
         }
     },
@@ -88,14 +115,9 @@ void lexer::setup_fsm() {
 
     // Eat directive - '.data'
     //                   ^^^^
-    {
-        states::SEEK_DIRECTIVE,
-        states::SEEK_DIRECTIVE,
+    { states::SEEK_DIRECTIVE, states::SEEK_DIRECTIVE,
         match_pattern("[a-zA-Z]"),
-        [&](lexer_data& lex) {
-            // eat characters
-            lex.m_buffer << lex.m_char;
-        }
+        consume_char
     },
     
     // Finish directive - '.data\n' or '.data '
@@ -104,11 +126,11 @@ void lexer::setup_fsm() {
         states::SEEK_DIRECTIVE,
         states::BASE,
         match_pattern("[ ]|[\\n]"),
-        [&](lexer_data& lex) -> void {
-            lex.push_token(token_type::DIRECTIVE, lex.get_buffer());
-            lex.clear_buffer();
+        [&](lexer_context& lex) -> void {
+            lex.push_token(token_type::DIRECTIVE, lex.char_buffer().str());
+            lex.clear_char_buffer();
 
-            if(lex.m_char == "\\n") {
+            if(lex.ch() == '\n') {
                 lex.push_token(token_type::NEW_LINE);
             }
         }
@@ -120,7 +142,7 @@ void lexer::setup_fsm() {
         states::SEEK_DIRECTIVE,
         states::INVALID_TOKEN,
         not_match_pattern("[a-zA-Z]|[ ]|[\\n]"),
-        on_invalid_token("Invalid directive characters")
+        push_invalid_token("Invalid directive characters")
     },
 
     // Begin label or mnemonic - 'mov ' or 'mov\n' or 'movie_label ' or 'movie_label\n'
@@ -131,10 +153,7 @@ void lexer::setup_fsm() {
         states::BASE,
         states::SEEK_LABEL_OR_MNEMONIC,
         match_pattern("[_a-zA-Z]"),
-        [&](lexer_data &lex) {
-            // eat first character
-            lex.m_buffer << lex.m_char;
-        }
+        consume_char
     },
 
     // Eat label or mnemonic - 'mov ' or 'mov\n' or 'movie_label ' or 'movie_label\n'
@@ -143,11 +162,7 @@ void lexer::setup_fsm() {
         states::SEEK_LABEL_OR_MNEMONIC,
         states::SEEK_LABEL_OR_MNEMONIC,
         match_pattern("[_a-zA-Z0-9]"),
-
-        [&](lexer_data &lex) {
-            // eat characters
-            lex.m_buffer << lex.m_char;
-        }
+        consume_char
     },
 
     // Finish label - 'mov ' or 'mov\n' or 'movie_label ' or 'movie_label\n'
@@ -158,37 +173,41 @@ void lexer::setup_fsm() {
         states::SEEK_LABEL_OR_MNEMONIC,
         states::BASE,
         match_pattern("[ ]|[\\n]"),
-        [&](lexer_data &lex) -> void {
+        [&](lexer_context &lex) -> void {
+            auto char_buffer = lex.char_buffer().str();
 
             // if we have an instruction that matches the char buffer
-            // it ain't a label
-            if (spec::instructions.count(lex.get_buffer())) {
-                lex.push_token(token_type::MNEMONIC, lex.get_buffer());
-                lex.clear_buffer();
+            if (spec::instructions.count(char_buffer)) {
+                lex.push_token(token_type::MNEMONIC, char_buffer);
+                lex.clear_char_buffer();
             } else {
                 // it's a label
-                lex.push_token(token_type::LABEL, lex.get_buffer());
-                lex.clear_buffer();
+                lex.push_token(token_type::LABEL, char_buffer);
+                lex.clear_char_buffer();
             }
 
-            if(lex.m_char == "\\n") {
+            if(lex.ch() == '\n') {
                 lex.push_token(token_type::NEW_LINE);
             }
         }
     },
 
+    // If a semi-colon follows the label, it's actually a label definition
+    //
     {
         states::SEEK_LABEL_OR_MNEMONIC,
         states::BASE,
         match_pattern("[:]"),
-        [&](lexer_data& lex) -> void {
+        [&](lexer_context& lex) -> void {
+            auto char_buffer = lex.char_buffer().str();
+
             // can't use an instruction as a label definition
-            if(spec::instructions.count(lex.get_buffer())) {
-                return on_invalid_token("Using a reserved keyword as a label definition")(lex);
+            if(spec::instructions.count(char_buffer)) {
+                return push_invalid_token("Using a reserved keyword as a label definition")(lex);
             } else {
                 // it's a label
-                lex.push_token(token_type::LABEL_DEFINITION, lex.get_buffer());
-                lex.clear_buffer();
+                lex.push_token(token_type::LABEL_DEFINITION, char_buffer);
+                lex.clear_char_buffer();
             }
         }
     },
@@ -199,7 +218,7 @@ void lexer::setup_fsm() {
         states::SEEK_DIRECTIVE,
         states::INVALID_TOKEN,
         not_match_pattern("[a-zA-Z]|[ ]|[\\n]"),
-        on_invalid_token("Invalid directive characters")
+        push_invalid_token("Invalid directive characters")
     },
 
     // Comments, we ignore till newline
@@ -236,49 +255,37 @@ void lexer::setup_fsm() {
         states::SEEK_REGISTER,
         states::SEEK_REGISTER,
         match_pattern("[a-z0-9]"),
-        [&](lexer_data &lex) {
-            // eat characters
-            lex.m_buffer << lex.m_char;
-        }
+        consume_char
     },
 
-
+    // When we reach the end of a register declaration
+    // delimited by "," or " " or "\n"
     {
         states::SEEK_REGISTER,
         states::BASE,
         match_pattern("[,| |\\n]"),
-        [&](lexer_data &lex) {
+        [&](lexer_context &lex) {
+            auto char_buffer = lex.char_buffer().str();
+            auto reg = get_register_id(char_buffer);
 
-            try {
-                int i_dec = std::stoi(lex.get_buffer());
-
-                if (i_dec > 0 && i_dec < 32) {
-                    lex.push_token(token_type::REGISTER, i_dec);
-                    lex.clear_buffer();
-                }
+            if(reg != std::nullopt) {
+                lex.push_token(token_type::REGISTER, reg.value());
+                lex.clear_char_buffer();
             }
-            catch(const std::invalid_argument& e) {
-                // if a named register
-
-                if(spec::registers.count(lex.get_buffer())) {
-                    // push register
-                    lex.push_token(token_type::REGISTER, spec::registers.at(lex.get_buffer()));
-                    lex.clear_buffer();
-                }
-                else {
-                    return on_invalid_token("Invalid register")(lex);
-                }
+            else {
+                return push_invalid_token("Invalid register")(lex);
             }
 
-            if(lex.m_char == ",") {
+            if(lex.ch() == ',') {
                 lex.push_token(token_type::COMMA);
             }
 
-            if(lex.m_char == "\\n") {
+            if(lex.ch() == '\n') {
                 lex.push_token(token_type::NEW_LINE);
             }
         }
     },
+
     {
         states::BASE,
         states::SEEK_LITERAL_STRING,
@@ -289,9 +296,7 @@ void lexer::setup_fsm() {
         states::SEEK_LITERAL_STRING,
         states::SEEK_LITERAL_STRING,
         not_match_pattern("[\"]"),
-        [&](lexer_data &lex) {
-            lex.m_buffer << lex.m_char;
-        }
+        consume_char
     },
 
 
@@ -299,9 +304,10 @@ void lexer::setup_fsm() {
         states::SEEK_LITERAL_STRING,
         states::BASE,
         match_pattern("[\"]"),
-        [&](lexer_data &lex) {
-            lex.push_token(token_type::LITERAL_STRING, lex.get_buffer());
-            lex.clear_buffer();
+        [&](lexer_context &lex) {
+            auto char_buffer = lex.char_buffer().str();
+            lex.push_token(token_type::LITERAL_STRING, char_buffer);
+            lex.clear_char_buffer();
         }
     },
 
@@ -316,9 +322,7 @@ void lexer::setup_fsm() {
         states::SEEK_LITERAL_CHAR,
         states::SEEK_LITERAL_CHAR,
         not_match_pattern("[']"),
-        [&](lexer_data &lex) {
-            lex.m_buffer << lex.m_char;
-        }
+        consume_char
     },
 
 
@@ -326,13 +330,15 @@ void lexer::setup_fsm() {
         states::SEEK_LITERAL_CHAR,
         states::BASE,
         match_pattern("[']"),
-        [&](lexer_data &lex) {
-            if(lex.get_buffer().size() > 1) {
-                return on_invalid_token("Invalid character literal")(lex);
+        [&](lexer_context &lex) {
+            auto char_buffer = lex.char_buffer().str();
+
+            if(char_buffer.size() > 1) {
+                return push_invalid_token("Invalid character literal")(lex);
             }
 
-            lex.push_token(token_type::LITERAL_CHAR, lex.get_buffer());
-            lex.clear_buffer();
+            lex.push_token(token_type::LITERAL_CHAR, char_buffer);
+            lex.clear_char_buffer();
         }
     },
 
@@ -341,38 +347,35 @@ void lexer::setup_fsm() {
         states::BASE,
         states::SEEK_LITERAL_NUMBER,
         match_pattern("[\\-|0-9|\\+]"),
-        [&](lexer_data &lex) {
-            lex.m_buffer << lex.m_char;
-        }
+        consume_char
     },
 
     {
         states::SEEK_LITERAL_NUMBER,
         states::SEEK_LITERAL_NUMBER,
         match_pattern("[0-9]"),
-        [&](lexer_data &lex) {
-            lex.m_buffer << lex.m_char;
-        }
+        consume_char
     },
 
     {
         states::SEEK_LITERAL_NUMBER,
         states::BASE,
         match_pattern("[ |\\n]"),
-        [&](lexer_data &lex) {
+        [&](lexer_context &lex) {
+             auto char_buffer = lex.char_buffer().str();
+
              try {
-                 int i_dec = std::stoi(lex.get_buffer());
+                 int i_dec = std::stoi(char_buffer);
                  lex.push_token(token_type::LITERAL_NUMBER,i_dec);
-                 lex.clear_buffer();
+                 lex.clear_char_buffer();
              }
              catch(const std::exception& e) {
-                return on_invalid_token("Invalid number literal")(lex);
+                return push_invalid_token("Invalid number literal")(lex);
              }
 
-             if(lex.m_char == "\\n") {
+             if(lex.ch() == '\n') {
                 lex.push_token(token_type::NEW_LINE);
              }
-
         }
     },
 
@@ -380,13 +383,15 @@ void lexer::setup_fsm() {
         states::SEEK_LITERAL_NUMBER,
         states::SEEK_IMM_REG_PRE,
         match_pattern("[(]"),
-        [&](lexer_data &lex) {
+        [&](lexer_context &lex) {
+             auto char_buffer = lex.char_buffer().str();
+
              try {
-                 int i_dec = std::stoi(lex.get_buffer());
+                 int i_dec = std::stoi(char_buffer);
                  lex.push_token(token_type::OFFSET, i_dec);
              }
              catch(const std::exception& e) {
-                return on_invalid_token("Invalid number literal")(lex);
+                return push_invalid_token("Invalid number literal")(lex);
              }
         }
     },
@@ -401,8 +406,8 @@ void lexer::setup_fsm() {
         states::SEEK_IMM_REG,
         states::SEEK_IMM_REG,
         match_pattern("[a-zA-Z]"),
-        [&](lexer_data &lex) {
-            lex.m_buffer << lex.m_char;
+        [&](lexer_context &lex) {
+            lex.consume(lex.ch());
         }
     },
 
@@ -410,25 +415,15 @@ void lexer::setup_fsm() {
         states::SEEK_IMM_REG,
         states::BASE,
         match_pattern("[)]"),
-        [&](lexer_data &lex) {
-            try {
-                int i_dec = std::stoi(lex.get_buffer());
+        [&](lexer_context &lex) {
+            auto char_buffer = lex.char_buffer().str();
+            auto reg = get_register_id(char_buffer);
 
-                if (i_dec > 0 && i_dec < 32) {
-                    lex.push_token(token_type::BASE_REGISTER, i_dec);
-                    lex.clear_buffer();
-                }
-            }
-            catch(const std::invalid_argument& e) {
-                // if a named register
-                if(spec::registers.count(lex.get_buffer())) {
-                    // push register
-                    lex.push_token(token_type::BASE_REGISTER, spec::registers.at(lex.get_buffer()));
-                    lex.clear_buffer();
-                }
-                else {
-                    return on_invalid_token("Invalid register")(lex);
-                }
+            if(reg != std::nullopt) {
+                lex.push_token(token_type::BASE_REGISTER, reg.value());
+                lex.clear_char_buffer();
+            } else {
+                return push_invalid_token("Invalid register")(lex);
             }
         }
     }
@@ -439,7 +434,7 @@ void lexer::setup_fsm() {
 
 std::optional<std::vector<token>> lexer::lex(const std::string &input) {
 
-    lexer_data lex;
+    lexer_context lex;
 
     // create a stringstream so we can read line by line below
     // the newline we add is a cautionary measure to ensure the last statement
@@ -457,24 +452,27 @@ std::optional<std::vector<token>> lexer::lex(const std::string &input) {
         cur_line_str += '\n';
 
         // tell lex current line
-        lex.m_line = cur_line;
+        lex.set_cur_line(cur_line);
 
         // pass each char to fsm
         for(auto& ch : cur_line_str) {
-            lex.m_char = ch;
+            lex.set_ch(ch);
             m_fsm.tick(lex);
 
-            if(lex.m_tokens.size() > 0 &&
-                    lex.m_tokens.end()->get_type() == token_type::INVALID_TOKEN) {
-                std::cout << std::get<std::string>(lex.m_tokens.end()->get_attribute()) << std::endl;
+            // if an invalid token ever gets pushed
+            if(!lex.tokens().empty() &&
+                    lex.tokens().end()->get_type() == token_type::INVALID_TOKEN) {
+
+                // display the error string in the invalid_token token attribute
+                std::cout << std::get<std::string>(lex.tokens().end()->get_attribute()) << std::endl;
                 return std::nullopt;
-            }
+            };
         }
 
         cur_line++;
     }
 
-    return lex.m_tokens;
+    return lex.tokens();
 };
 
 }

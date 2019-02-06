@@ -12,6 +12,8 @@
 #include "../fsm/finite_state_machine.hpp"
 #include "../fsm/transition.hpp"
 
+
+#include "lexer_context.hpp"
 #include "token.hpp"
 
 namespace as {
@@ -69,52 +71,12 @@ private:
         INVALID_TOKEN = -1
     };
 
-    /**
-     * This is the class used for the inputs of the FSM
-     */
-    class lexer_data {
-    public:
-        /*
-         * The current character that has been passed to the lexer
-         * Note: m_char is the only variable the FSM depends on to determine state
-         * The other variables are simple used for outputs
-         *
-         * Stored as an std::string to make passing to std::regex easier
-         * */
-        std::string m_char;
-
-        std::size_t m_line;
-
-        /* The output tokens */
-        std::vector<token> m_tokens;
-
-        /* Character buffer */
-        std::stringstream m_buffer;
-
-        void push_token(const token_type& type, const std::variant<std::string,std::int32_t>& attr = 0) {
-            m_tokens.emplace_back(token(type, m_line, attr));
-        }
-
-        std::string get_buffer() {
-            return m_buffer.str();
-        }
-
-        std::size_t get_line() {
-            return m_line;
-        }
-
-        void clear_buffer() {
-            m_buffer.clear(); // clear string
-            m_buffer.str(""); // resets flags
-        }
-    };
-
     /*
      * Loads transitions into the FSM
      */
     void setup_fsm();
 
-    finite_state_machine<states, lexer_data> m_fsm;
+    finite_state_machine<states, lexer_context> m_fsm;
 };
 
 }

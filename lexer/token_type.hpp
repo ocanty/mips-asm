@@ -52,7 +52,7 @@ enum class token_type : signed int {
     INVALID_TOKEN = -1
 };
 
-/* these are just for debug */
+/* String map for enum */
 const std::unordered_map<token_type, std::string> token_type_name = {
     { token_type::DIRECTIVE, "DIRECTIVE" },
     { token_type::MNEMONIC, "MNEMONIC" },
