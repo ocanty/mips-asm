@@ -11,13 +11,13 @@
 
 namespace as::spec {
 
-enum instruction_format {
+enum instruction_def_format {
     R,
     I,
     J
 };
 
-enum operand_format {
+enum operand_def_format {
 
     // Tri-reg
     RD_RS_RT,          // (R) - rd, rs, rt
@@ -48,9 +48,27 @@ enum operand_format {
     TARGET             // (J) - target
 };
 
-struct instruction {
-    instruction_format  m_ins_format;
-    operand_format      m_operand_fmt;
+/**
+ * Define an instruction
+ */
+class instruction_def {
+
+public:
+    instruction_def(const instruction_def_format& idf,
+            const operand_def_format& odf,
+            const std::uint8_t& upper_field,
+            const std::uint8_t& lower_field);
+
+    instruction_def(const instruction_def_format& idf,
+            const operand_def_format& odf,
+            const std::uint8_t& upper_field);
+
+    const instruction_def_format&   instruction_format();
+    const operand_def_format&       operand_format();
+
+private:
+    instruction_def_format  m_ins_format;
+    operand_def_format      m_operand_fmt;
 
     // Bits 31 to 26
     // For I (immediate format), the opcode is usually stored here
@@ -63,6 +81,21 @@ struct instruction {
     // The opcode in the R (register format) (as per the spec) is stored here,
     // This is known more commonly as funct value
     std::uint8_t m_lower_field;
+};
+
+class instructions {
+public:
+    static bool exists(const std::string& mnemonic) {
+        return instruction_defs.count(mnemonic) > 0;
+    }
+
+    static std::optional<instruction_def> get(const std::string& mnemonic) {
+        if(exists(mnemonic)) {
+            return instruction_defs.at(mnemonic);
+        }
+    }
+private:
+    static const std::unordered_map<std::string, instruction_def> instruction_defs;
 };
 
 }
