@@ -7,7 +7,7 @@
 #include <regex>
 #include "lexer.hpp"
 #include "../fsm/transition.hpp"
-#include "../spec/instructions.hpp"
+#include "../spec/instruction_defs.hpp"
 #include "../spec/registers.hpp"
 #include "token.hpp"
 
@@ -177,7 +177,7 @@ void lexer::setup_fsm() {
             auto char_buffer = lex.char_buffer().str();
 
             // if we have an instruction that matches the char buffer
-            if (spec::instructions.count(char_buffer)) {
+            if (spec::instructions::exists(char_buffer)) {
                 lex.push_token(token_type::MNEMONIC, char_buffer);
                 lex.clear_char_buffer();
             } else {
@@ -202,7 +202,7 @@ void lexer::setup_fsm() {
             auto char_buffer = lex.char_buffer().str();
 
             // can't use an instruction as a label definition
-            if(spec::instructions.count(char_buffer)) {
+            if(spec::instructions::exists(char_buffer)) {
                 return push_invalid_token("Using a reserved keyword as a label definition")(lex);
             } else {
                 // it's a label
@@ -461,10 +461,10 @@ std::optional<std::vector<token>> lexer::lex(const std::string &input) {
 
             // if an invalid token ever gets pushed
             if(!lex.tokens().empty() &&
-                    lex.tokens().end()->get_type() == token_type::INVALID_TOKEN) {
+                    lex.tokens().end()->type() == token_type::INVALID_TOKEN) {
 
                 // display the error string in the invalid_token token attribute
-                std::cout << std::get<std::string>(lex.tokens().end()->get_attribute()) << std::endl;
+                std::cout << std::get<std::string>(lex.tokens().end()->attribute()) << std::endl;
                 return std::nullopt;
             };
         }
