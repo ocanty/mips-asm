@@ -28,22 +28,22 @@ public:
     /**
      * @return Token type
      */
-    token_type get_type() const {
+    const token_type& type() const {
         return m_type;
     }
 
     /**
      * @return Variable associated with the token (either a number, or a symbol)
      */
-    std::variant <std::string, std::int32_t> get_attribute() const {
+    const std::variant <std::string, std::int32_t>& attribute() const {
         return m_attribute;
     }
 
-    std::string get_name() const {
+    const std::string& name() const {
         return token_type_name.at(m_type);
     }
 
-    std::size_t get_line() const {
+    const std::size_t& line() const {
         return m_line;
     }
 private:
