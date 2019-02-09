@@ -82,7 +82,7 @@ public:
     States tick(InputsType& input) {
         auto transition = m_transition_table.test_for_transitions(m_current_state, input);
 
-        // if a transition occured
+        // if a transition occurred
         if(transition != std::nullopt) {
 
             // we need to run the callback, to run user-supplied state transition code
