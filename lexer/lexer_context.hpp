@@ -20,9 +20,6 @@ namespace as {
  * based on the input character
  */
 class lexer_context {
-
-
-
 public:
     /**
      * Get the character that has been passed as an input to the fsm

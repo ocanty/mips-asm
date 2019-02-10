@@ -47,13 +47,13 @@ private:
     };
 
     // The next state number we can add to the fsm
-    // i.e this is a free state
+    // i.e this is the next free state
     std::size_t m_last_state = _LAST_BASE_STATE;
 
     void add_transitions_for_sequence(
             const std::size_t& start_state,
             const op_sequence& sequence,
-            const std::function<void(emitter_context&)> handler);
+            std::function<void(emitter_context&)> handler);
 
     void setup_fsm();
 };
