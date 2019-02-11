@@ -32,7 +32,7 @@ int main()
 
     auto tokens = test.lex(input);
 
-    if(tokens != std::nullopt) {
+    if(tokens.has_value()) {
         auto aa = tokens.value();
         as::emitter emitter;
         auto binary = emitter.emit(aa);
