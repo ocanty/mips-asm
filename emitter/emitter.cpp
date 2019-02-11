@@ -101,26 +101,25 @@ void emitter::setup_fsm() {
     // that match operation token sequences
     // the lamdba below will be called whenever we find tokens
     // matching a possible sequence, (aka an instruction has been found)
-    // then it's time to encode it
-    for(auto& sequence_pair : op_sequences) {
-        auto& sequence = sequence_pair.second;
+    // then it's time to encode it (using the emitter_context)
+    for(auto& op_sequence : op_sequences::all()) {
 
-        add_transitions_for_sequence(TEXT_STATE, sequence, [=](emitter_context& em) {
+        add_transitions_for_sequence(TEXT_STATE, op_sequence, [=](emitter_context& em) {
             // Try to write an instruction using the sequence we detected
             // the emitter context will use the current token buffer
-            if(!em.try_write_instruction(sequence)) {
+            if(!em.try_write_instruction(op_sequence)) {
                 std::cout << "failed" << std::endl;
             }
 
         });
     }
 
-    // add support for newlines
-    add_transitions_for_sequence(TEXT_STATE, op_sequence({t::NEW_LINE}),
-        [=](emitter_context& em) {
-            return;
-        }
-    );
+//    // add support for newlines
+//    add_transitions_for_sequence(TEXT_STATE, op_sequence({t::NEW_LINE}),
+//        [=](emitter_context& em) {
+//            return;
+//        }
+//    );
 }
 
 
@@ -219,6 +218,7 @@ void emitter::add_transitions_for_sequence(
 
         // The final token has been found, we need to call their handler
         [=](emitter_context& em) {
+
             // call it
             handler(em);
 

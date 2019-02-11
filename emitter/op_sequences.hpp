@@ -25,10 +25,31 @@ namespace as {
  */
 class op_sequence {
 public:
-    op_sequence(const std::vector<token_type>& token_types);
 
-    op_sequence(const std::vector<token_type>& token_types,
-        const std::unordered_map<std::string, std::size_t>& attribute_positions);
+    /**
+     * The operands in the sequence are defined by their operand format,
+     * We need to specify which tokens map to which operand,
+     * for each possible operand format that this sequence should support
+     *
+     * i.e token 3's attribute might be the register number for the target register (rt)
+     * so
+     *
+     * This sequence of token types might be
+     * e.g. MNEMONIC, REGISTER, COMMA, REGISTER, COMMA, REGISTER
+     *
+     * operand_locations[spec::RD_RT_RS] = { {"rt",3}, ... }
+     *                    ^                     ^- Token mapping
+     *                    \- i.e. This sequence maps to this operand format
+     */
+    using operand_locations =
+        std::unordered_map<spec::operand_def_format, std::unordered_map<std::string, std::size_t>>;
+
+    op_sequence(
+        const std::vector<token_type>& token_type,
+        const operand_locations& locations
+    );
+
+    explicit op_sequence(const std::vector<token_type>& types);
 
     /**
      * Get token type array
@@ -37,133 +58,34 @@ public:
     const std::vector<token_type>& token_types() const;
 
     /**
-     * Get the position of an attribute
-     * @param name Attribute name
+     * Get the position of an operand in an operand format that this class supports
+     * @param fmt Operand format
+     * @param name Operand name
      */
-     std::optional<std::size_t> position_of(const std::string& name) const;
+     std::optional<std::size_t> operand_position(
+        const as::operand_def_format &fmt,
+        const std::string &name
+     ) const;
 
 private:
     std::vector<token_type> m_token_types;
-    std::unordered_map<std::string, std::size_t> m_positions =
-            { {"mnemonic",0} };
+    operand_locations m_operand_locations = { };
 };
 
-using t = token_type;
-
-/* these represent token sequences of any possible operands for a given operand format */
-
-// 3 register operations
-const std::vector<token_type> op_tri_reg =
-    {t::MNEMONIC, t::REGISTER, t::COMMA, t::REGISTER, t::COMMA, t::REGISTER, t::NEW_LINE};
-
-// 2 register operations
-const std::vector<token_type> op_duo_reg =
-    {t::MNEMONIC, t::REGISTER, t::COMMA, t::REGISTER, t::NEW_LINE};
-
-// 2 register + number operations, i.e. rs, rt, offset
-const std::vector<token_type> op_duo_reg_number =
-    {t::MNEMONIC, t::REGISTER, t::COMMA, t::REGISTER, t::COMMA, t::LITERAL_NUMBER, t::NEW_LINE};
-
-// 1 register + number
-const std::vector<token_type> op_single_reg_number =
-    {t::MNEMONIC, t::REGISTER, t::COMMA, t::LITERAL_NUMBER, t::NEW_LINE};
-
-// 2 register + offset(base), i.e. rs, rt offset(base) -> $t0, $t1, -4($02)
-const std::vector<token_type> op_duo_reg_offset_base =
-    {t::MNEMONIC, t::REGISTER, t::COMMA, t::REGISTER, t::COMMA, t::OFFSET, t::BASE_REGISTER, t::NEW_LINE};
-
-// 1 register + offset(base)
-const std::vector<token_type> op_single_reg_offset_base =
-    {t::MNEMONIC, t::REGISTER,  t::COMMA, t::OFFSET, t::BASE_REGISTER, t::NEW_LINE};
-
-// No operand
-const std::vector<token_type> op_no_operand =
-    {t::MNEMONIC,  t::NEW_LINE};
-
-// addr operand, i.e j 0x5000
-const std::vector<token_type> op_target_addr =
-    {t::MNEMONIC, t::LITERAL_NUMBER};
-
-// label operand
-const std::vector<token_type> op_target_label =
-    {t::MNEMONIC, t::LABEL};
-
-/* This table links operand format and sequence required */
-const std::map<spec::operand_def_format, op_sequence> op_sequences = {
-    {
-        spec::RD_RS_RT,
-        { op_tri_reg, { {"rd", 1}, {"rs", 3}, {"rt", 5} } }
-    },
-
-    {
-        spec::RD_RT_RS,
-        { op_tri_reg, { {"rd", 1}, {"rs", 5}, {"rt", 3} } }
-    },
-
-    {
-        spec::RS_RT,
-        { op_duo_reg, { {"rs", 1}, {"rt", 3} } }
-    },
-
-    {
-        spec::RD_RS,
-        { op_duo_reg, { {"rd", 1}, {"rs", 3} } }
-    },
-
-    {
-        spec::RS,
-        { op_duo_reg, { {"rs", 1} } }
-    },
-
-    {
-        spec::RD,
-        { op_duo_reg, { {"rd", 1} } }
-    },
-
-    {
-        spec::RS_RT_OFFSET,
-        { op_duo_reg, { {"rd", 1} } }
-    },
-
-    {
-        spec::RT_RS_IMM,
-        { op_duo_reg_number, { {"rs",1}, {"rt",3}, {"imm",5} } }
-    },
-
-    {
-        spec::RD_RT_SA,
-        { op_duo_reg_number, { {"rd",1}, {"rt",3}, {"shamt",5} } }
-    },
-
-    {
-        spec::RS_OFFSET,
-        { op_single_reg_number, { {"rs",1}, {"imm",3} } }
-    },
-
-    {
-        spec::RT_IMM,
-        { op_single_reg_number, { {"rt",1}, {"imm",3} } }
-    },
-
-    {
-        spec::RS_RT_OFFSET_BASE,
-        { op_duo_reg_offset_base, { {"rd",6}, {"rs",1}, {"rt",3}, {"imm",6} } }
-    },
-
-    {
-        spec::RT_OFFSET_BASE,
-        { op_single_reg_offset_base, { {"rt", 1} } }
-    },
-
-//    {
-//        spec::TARGET,
-//        { op_target_addr, { .addr = 1 } }
-//    },
-//
-//    {
-//        spec::TARGET,
-//        { op_target_label, { .addr = 1, .label_on = 1 } }
-//    }
+/**
+ * Static container class for operation sequences
+ */
+class op_sequences {
+public:
+    /**
+     * Get a reference to all possible op sequences
+     * @return
+     */
+    static const std::vector<op_sequence>& all() {
+        return sequences;
+    }
+private:
+    static const std::vector<op_sequence> sequences;
 };
 
 }

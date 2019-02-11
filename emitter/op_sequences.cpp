@@ -3,38 +3,109 @@
 //
 
 #include "op_sequences.hpp"
+#include "emitter_context.hpp"
+#include <map>
+#include <unordered_map>
 
 namespace as {
 
-op_sequence::op_sequence(const std::vector<token_type>& types) :
+
+op_sequence::op_sequence(
+    const std::vector<as::token_type> &token_types,
+    const as::op_sequence::operand_locations &locations) :
+    m_token_types(token_types),
+    m_operand_locations(locations) {
+
+}
+
+op_sequence::op_sequence(const std::vector<token_type> &types) :
     m_token_types(types) {
 
-};
-
-op_sequence::op_sequence(const std::vector<token_type>& types,
-    const std::unordered_map<std::string, std::size_t>& positions) :
-    m_token_types(types),
-    m_positions(positions) {
-
-    // check if mnemonic hasn't been overriden
-    if(!m_positions.count("mnemonic")) {
-
-        // first token is usually the mnemonic
-        // if it's not they'd have set it
-        m_positions.insert({"mnemonic", 0});
-    }
 }
+
 
 const std::vector<token_type>& op_sequence::token_types() const {
     return m_token_types;
 }
 
-std::optional<std::size_t> op_sequence::position_of(const std::string& attr_name) const {
-     if(m_positions.count(attr_name)) {
-         return m_positions.at(attr_name);
-     }
+std::optional<std::size_t> op_sequence::operand_position(
+        const as::operand_def_format &fmt,
+        const std::string &name) const {
+
+    // if this sequence has the operands required for the operand format
+    if(m_operand_locations.count(fmt) > 0) {
+
+        // if the operand format has an operand that matches the one they want
+        if(m_operand_locations.at(fmt).count(name) > 0) {
+            return m_operand_locations.at(fmt).at(name);
+        }
+    }
 
     return std::nullopt;
 }
 
-}
+using t = token_type;
+const std::vector<op_sequence> op_sequences::sequences = {
+    {   // op $reg, $reg, $reg
+        { t::MNEMONIC, t::REGISTER, t::COMMA, t::REGISTER, t::COMMA, t::REGISTER, t::NEW_LINE },
+        {
+            { spec::RD_RS_RT, { {"rd", 1}, {"rs", 3}, {"rt", 5} } },
+            { spec::RD_RT_RS, { {"rd", 1}, {"rs", 5}, {"rt", 3} } }
+        }
+    },
+
+    {   // op $reg, $reg
+        { t::MNEMONIC, t::REGISTER, t::COMMA, t::REGISTER, t::NEW_LINE },
+        {
+            { spec::RD_RS, { {"rd", 1}, {"rs", 3} } },
+            { spec::RS_RT, { {"rs", 1}, {"rt", 3} } }
+        },
+
+    },
+
+
+    {   // op $reg
+        { t::MNEMONIC, t::REGISTER, t::NEW_LINE },
+        {
+            { spec::RD, { {"rd", 1} } },
+            { spec::RS, { {"rs", 1} } }
+        },
+    },
+
+    {   // op $reg, $reg, offset
+        //                ^-- a literal number
+        { t::MNEMONIC, t::REGISTER, t::COMMA, t::REGISTER, t::COMMA, t::LITERAL_NUMBER, t::NEW_LINE },
+        {
+            { spec::RS_RT_OFFSET, { {"rs", 1}, {"rt", 3}, {"imm", 5 } } },
+            { spec::RD_RT_SA,     { {"rd", 1}, {"rt", 3}, {"shamt", 5 } } },
+        }
+    },
+
+    {   // op $reg, offset
+        //              ^-- a literal number
+        {t::MNEMONIC, t::REGISTER, t::COMMA, t::LITERAL_NUMBER, t::NEW_LINE},
+        {
+            { spec::RS_OFFSET, { {"rs", 1}, {"imm", 3} } },
+            { spec::RT_IMM, { {"rt", 1}, {"imm", 3} } }
+        }
+    },
+
+    {   // op $reg, offset($reg_base)
+        {t::MNEMONIC, t::REGISTER, t::COMMA, t::REGISTER, t::COMMA, t::OFFSET, t::BASE_REGISTER, t::NEW_LINE},
+        {
+            {spec::RS_RT_OFFSET_BASE, { {"rs",1}, {"rt",3}, {"imm",5}, {"rd",6} } }
+        }
+    },
+
+    {
+        {t::MNEMONIC, t::LITERAL_NUMBER},
+        {
+            {spec::TARGET, { {"imm", 1 } } }
+        }
+    },
+
+    {
+        // no operand
+        {t::MNEMONIC,  t::NEW_LINE}, { }
+    }
+};
