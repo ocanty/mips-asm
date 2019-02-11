@@ -11,12 +11,18 @@
 
 namespace as::spec {
 
+/**
+ * The type of encoding an instruction uses
+ */
 enum instruction_def_format {
     R,
     I,
     J
 };
 
+/**
+ * The types of an operand in an instruction
+ */
 enum operand_def_format {
 
     // Tri-reg
@@ -49,46 +55,78 @@ enum operand_def_format {
 };
 
 /**
- * Define an instruction
+ * Defines an instruction
  */
 class instruction_def {
 
 public:
+    /**
+     * Define an instruction by it's encoding, operands & upper and lower fields
+     * @param idf           Instruction encoding type
+     * @param odf           Operand format type
+     * @param upper_field   Instruction upper field, bits 31 to 26
+     *                          for I format this is opcode,
+     *                          for R format this is SPECIAL / see R3000 spec for clarification
+     * @param lower_field   Instruction lower field, bits 0 to 6
+     *                          for R format, the opcode is stored here,
+     *                          more commonly known as the funct value/function type for ALU
+     */
     instruction_def(const instruction_def_format& idf,
             const operand_def_format& odf,
             const std::uint8_t& upper_field,
             const std::uint8_t& lower_field);
 
+    /**
+     * Define an instruction by it's encoding, operands & upper field
+     * @param idf           Instruction encoding type
+     * @param odf           Operand format type
+     * @param upper_field   Instruction upper field, bits 31 to 26
+     *                          for I format this is opcode,
+     *                          for R format this is SPECIAL / see R3000 spec for clarification
+     */
     instruction_def(const instruction_def_format& idf,
             const operand_def_format& odf,
             const std::uint8_t& upper_field);
 
+    /**
+     * Get instruction encoding format
+     * @return instruction format
+     */
     const instruction_def_format&   instruction_format();
+
+    /**
+     * Get operand format
+     * @return operand format
+     */
     const operand_def_format&       operand_format();
 
 private:
     instruction_def_format  m_ins_format;
     operand_def_format      m_operand_fmt;
 
-    // Bits 31 to 26
-    // For I (immediate format), the opcode is usually stored here
-    //
-    // For R (register format), it is known as the SPECIAL value in the spec
-    // Despite this, many books still refer to this as the opcode
     std::uint8_t m_upper_field;
-
-    // Bits 0 to 6
-    // The opcode in the R (register format) (as per the spec) is stored here,
-    // This is known more commonly as funct value
     std::uint8_t m_lower_field;
 };
 
+/**
+ * Static container class for all possible instruction definitions
+ */
 class instructions {
 public:
+    /**
+     * Returns true if mnemonic is a valid instruction
+     * @param mnemonic
+     * @return True if mnemonic exists, else false
+     */
     static bool exists(const std::string& mnemonic) {
         return instruction_defs.count(mnemonic) > 0;
     }
 
+    /**
+     * Get instruction definition for instruction of mnemonic
+     * @param mnemonic
+     * @return Optional of instruction definition
+     */
     static std::optional<instruction_def> get(const std::string& mnemonic) {
         if(exists(mnemonic)) {
             return instruction_defs.at(mnemonic);
