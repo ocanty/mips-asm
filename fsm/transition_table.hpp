@@ -23,7 +23,9 @@ public:
      */
     void add_transition(const transition<States, InputsType>& transition) {
         m_table.try_emplace(transition.get_initial_state());
+
         m_table.at(transition.get_initial_state()).emplace_back(transition);
+
     }
 
     /**
@@ -40,7 +42,10 @@ public:
             /* check each possible transition this state can undergo,
              * if one matches the correct condition (against the input value) it means a transition has to occur */
             for(auto& transition : m_table.at(state)) {
-                if(transition.test_transition_condition(inputs)) {
+
+
+                if(transition.get_initial_state() == state
+                        && transition.test_transition_condition(inputs)) {
                     return transition;
                 }
             }

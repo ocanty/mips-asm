@@ -83,7 +83,7 @@ public:
         auto transition = m_transition_table.test_for_transitions(m_current_state, input);
 
         // if a transition occurred
-        if(transition != std::nullopt) {
+        if(transition.has_value()) {
 
             // we need to run the callback, to run user-supplied state transition code
             auto callback = transition.value().get_transition_callback();
