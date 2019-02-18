@@ -57,13 +57,15 @@ public:
      */
     const std::vector<token_type>& token_types() const;
 
+    bool supports_operand_format(const spec::operand_def_format& fmt) const;
+
     /**
      * Get the position of an operand in an operand format that this class supports
      * @param fmt Operand format
      * @param name Operand name
      */
      std::optional<std::size_t> operand_position(
-        const as::operand_def_format &fmt,
+        const spec::operand_def_format &fmt,
         const std::string &name
      ) const;
 

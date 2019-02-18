@@ -25,35 +25,19 @@ public:
 private:
     finite_state_machine<std::size_t, emitter_context> m_fsm;
 
-    /**
-     * We are generating states at runtime,
-     * these are the additional ones we require
-     */
     enum base_states : std::size_t {
         // Base state
         INITIAL_STATE = 0,
 
         // We have passed a .data directive and are in data mode
-        DATA_STATE = 1,
+        DATA_STATE,
 
         // We have passed a .text directive and are in text mode
-        TEXT_STATE = 2,
+        TEXT_STATE,
 
-        // Compile error occured
-        ERROR_STATE = 3,
-
-        // Use to get next free state @ runtime
-        _LAST_BASE_STATE
+        // From TEXT_STATE, seek until we encounter a newline delimiter
+        TEXT_SEEK_UNTIL_NEWLINE
     };
-
-    // The next state number we can add to the fsm
-    // i.e this is the next free state
-    std::size_t m_last_state = _LAST_BASE_STATE;
-
-    void add_transitions_for_sequence(
-            const std::size_t& start_state,
-            const op_sequence& sequence,
-            std::function<void(emitter_context&)> handler);
 
     void setup_fsm();
 };

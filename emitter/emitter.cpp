@@ -4,12 +4,12 @@
 
 
 #include <algorithm>
+#include <cstdint>
 #include "emitter.hpp"
 
 #include "../spec/instruction_defs.hpp"
 #include "../fsm/transition.hpp"
 #include "op_sequences.hpp"
-
 
 namespace as {
 
@@ -29,10 +29,12 @@ std::optional<std::vector<std::uint8_t>> emitter::emit(const std::vector<token>&
     for(auto& tk : tokens) {
         em.set_cur_token(tk);
 
-        if(m_fsm.tick(em) == ERROR_STATE) {
-            std::cout << "Assembling failed " << std::endl;
-            return std::nullopt;
-        }
+        m_fsm.tick(em);
+    }
+
+    if(em.errors().str().size() > 0) {
+        std::cout << em.errors().str() << std::endl;
+        return std::nullopt;
     }
 
     return std::vector<std::uint8_t>();
@@ -49,182 +51,104 @@ void emitter::setup_fsm() {
                 if(em.cur_token().type() == token_type::DIRECTIVE &&
                     std::get<std::string>(em.cur_token().attribute()) == directive) {
 
-                    em.set_next_error("Expected labels, instruction or data definition");
+                    // em.set_next_error("Expected labels, instruction or data definition");
                     return true;
                 }
 
-                em.set_next_error("Expected a directive, probably: " + directive);
+                // .set_next_error("Expected a directive, probably: " + directive);
                 return false;
             }
         );
     };
 
+    // push current token to buffer
+    auto push_buffer = [](emitter_context& em) {
+        em.token_buffer().emplace_back(em.cur_token());
+    };
+
     // helper func to clear buffer (fsm callback)
-    auto clear_buffer = [](emitter_context& em) -> void {
+    auto clear_buffer = [](emitter_context& em) {
         em.token_buffer().clear();
     };
 
-    // if no transition is available between a sequence of tokens
-    // it means the user supplied incorrect syntax
-    // print the last error set
-    m_fsm.set_no_transition_available_handler([] (emitter_context& em) {
-        std::cout << "Error in sequence near line " << em.cur_token().line() << ": " << std::endl;
 
-        for(auto& token : em.token_buffer()) {
-            std::cout << token.name() << " ";
-        }
-
-        std::cout << std::endl;
-        std::cout << em.get_next_error() << std::endl;
-
-        return ERROR_STATE;
-    });
-
-    // Add the transitions that
-    // so when we encounter a text or data directive we move into their respective modes
     m_fsm.add_transitions({
+
+    // Enter text state when we encounter .text
     {
         INITIAL_STATE,
         TEXT_STATE,
         match_directive("text")
     },
 
+    // Enter data state when we encounter .data
     {
         INITIAL_STATE,
         DATA_STATE,
         match_directive("data")
-    }
+    },
 
-    });
+    // Ignore newlines
+    {
+        TEXT_STATE,
+        TEXT_STATE,
+        [](emitter_context& em) -> bool {
+            return (em.cur_token().type() == token_type::NEW_LINE);
+        }
+    },
 
-    // Add transitions from TEXT_STATE (in the text segment)
-    // that match operation token sequences
-    // the lamdba below will be called whenever we find tokens
-    // matching a possible sequence, (aka an instruction has been found)
-    // then it's time to encode it (using the emitter_context)
-    for(auto& op_sequence : op_sequences::all()) {
+    // If we encounter a token that isn't a new line, begin seeking the sequence
+    {
+        TEXT_STATE,
+        TEXT_SEEK_UNTIL_NEWLINE,
+        [](emitter_context& em) -> bool {
+            return (em.cur_token().type() != token_type::NEW_LINE);
+        },
+        push_buffer
+    },
 
-        add_transitions_for_sequence(TEXT_STATE, op_sequence, [=](emitter_context& em) {
-            // Try to write an instruction using the sequence we detected
-            // the emitter context will use the current token buffer
-            if(!em.try_write_instruction(op_sequence)) {
-                std::cout << "failed" << std::endl;
-            }
-
-        });
-    }
-
-//    // add support for newlines
-//    add_transitions_for_sequence(TEXT_STATE, op_sequence({t::NEW_LINE}),
-//        [=](emitter_context& em) {
-//            return;
-//        }
-//    );
-}
-
-
-// Adds state transitions for a sequence of token types
-void emitter::add_transitions_for_sequence(
-        const std::size_t& start_state,
-        const op_sequence& sequence,
-        std::function<void(emitter_context&)> handler) {
-
-    // the sequence is empty, don't add it
-    if(sequence.token_types().begin() == sequence.token_types().end()) return;
-
-    // if the sequence consists of only 1 token,
-    // we don't need to link states together
-    // we can simply do start_state -> start_state instead
-    if(sequence.token_types().size() == 1) {
-        m_fsm.add_transition({
-            start_state,
-            start_state,
-
-            [=](emitter_context& em) -> bool {
-                em.token_buffer().push_back(em.cur_token());
-                // do the transition if the supplied token matches the sequence
-                return em.cur_token().type() == sequence.token_types().at(0);
-            },
-
-            [=](emitter_context& em) {
-                // call their handler
-                handler(em);
-
-                // clear the buffer
-                em.token_buffer().clear();
-            }
-        });
-
-        return;
-    }
-
-    std::size_t state = start_state;
-
-    // add a transition for each part of the token sequence
-    // e.g. for MNEMONIC, REGISTER, REGISTER, CONSTANT
-    // we do MNEMONIC -> REGISTER, REGISTER -> REGISTER state transitions here
-    for(auto it = sequence.token_types().begin(); it != std::prev(sequence.token_types().end()); ++it) {
-        m_fsm.add_transition({
-            state,
-            m_last_state,
-            [=](emitter_context& em) -> bool {
-
-                // Set an error to be displayed if this transition function fails
-                // /if the transition does not exist
-                em.set_next_error("Expected a token " +
-                    get_name_for_token(*it) +
-                    " near " +
-                    em.cur_token().name()
-                );
-
-                // for each sequence transition, we add the token to the buffer
-                // so that it's available when the sequence is complete
-                em.token_buffer().push_back(em.cur_token());
-
-                // only transition to the next token/sequence transition if the token
-                // matches the next one
-                return em.cur_token().type() == *it;
-            }
-        });
-
-        state = m_last_state;
-        m_last_state++;
-    }
-
-    // Add the final transition
-    // e.g. for MNEMONIC, REGISTER, REGISTER, CONSTANT
-    // in this case it'l be triggered on REGISTER -> CONSTANT
-    // We want to transition to the base state to start
-    // finding the next instruction
-    auto it = std::prev(sequence.token_types().end());
-    m_fsm.add_transition({
-        state,
-        start_state, // go back to the supplied base state (i.e. usually searching for another instruction)
-
-        [=](emitter_context& em) -> bool {
-            // if the transition fails, set the error
-            // to tell the user what token we expected
-            em.set_next_error("Expected a token " +
-                 get_name_for_token(*it) +
-                 " near " +
-                 em.cur_token().name()
-            );
+    // Continue seeking if we don't encounter the newline delimiter
+    {
+        TEXT_SEEK_UNTIL_NEWLINE,
+        TEXT_SEEK_UNTIL_NEWLINE,
+        [](emitter_context& em) -> bool {
+            return (em.cur_token().type() != token_type::NEW_LINE);
+        },
+        push_buffer
+    },
 
 
-            em.token_buffer().push_back(em.cur_token());
-            return em.cur_token().type() == *it;
+    // If we encountered the new line delimiter, it's time to check the validity
+    // of the sequence
+    {
+        TEXT_SEEK_UNTIL_NEWLINE,
+        TEXT_STATE,
+        [](emitter_context& em) -> bool {
+            return (em.cur_token().type() == token_type::NEW_LINE);
         },
 
+        [](emitter_context& em) {
+            for(auto& seq : op_sequences::all()) {
+                if(em.token_types_buffer() == seq.token_types()) {
+                    em.encode_instruction(seq);
 
-        // The final token has been found, we need to call their handler
-        [=](emitter_context& em) {
+                    em.token_buffer().clear();
 
-            // call it
-            handler(em);
+                    return;
+                }
+            }
 
-            // clear the buffer
-            em.token_buffer().clear();
+            em.errors() << "Unknown sequence of tokens ";
+
+            if(em.token_buffer().size() > 0) {
+                em.errors() << "near line "
+                            << em.token_buffer().at(0).line()
+                            << " ";
+            }
+
+            em.errors() << std::endl;
         }
+    }
     });
 }
 

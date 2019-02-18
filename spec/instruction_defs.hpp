@@ -7,6 +7,8 @@
 
 #include <cstddef>
 #include <list>
+#include <iostream>
+#include <bitset>
 #include "../lexer/token_type.hpp"
 
 namespace as::spec {
@@ -100,6 +102,19 @@ public:
      */
     const operand_def_format&       operand_format();
 
+
+    /**
+     * Get the upper and lower fields as they would appear in an instruction
+     * @return 32bit val
+     */
+    std::uint32_t encoded() {
+        std::uint32_t result = 0;
+        result |= m_upper_field;
+        result <<= (32-5);
+        result |= m_lower_field;
+        std::cout << std::bitset<32>(result).to_string() << std::endl;
+        return result;
+    }
 private:
     instruction_def_format  m_ins_format;
     operand_def_format      m_operand_fmt;
@@ -131,6 +146,8 @@ public:
         if(exists(mnemonic)) {
             return instruction_defs.at(mnemonic);
         }
+
+        return std::nullopt;
     }
 private:
     static const std::unordered_map<std::string, instruction_def> instruction_defs;

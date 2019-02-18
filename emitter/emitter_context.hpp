@@ -6,6 +6,7 @@
 #define MIPS_ASM_EMITTER_CONTEXT_HPP
 
 #include <vector>
+#include <sstream>
 #include <map>
 #include "../lexer/token.hpp"
 #include "op_sequences.hpp"
@@ -16,9 +17,7 @@ namespace as {
 
 class emitter_context {
 public:
-    explicit emitter_context(const token& tk) :
-        m_token(tk) {
-    }
+    explicit emitter_context(const token& tk);
 
     // .text section base address
     static const std::uint32_t SECTION_TEXT_BASE = 0x004000f0;
@@ -27,25 +26,21 @@ public:
      * Get the latest token passed to the fsm
      * @return The token
      */
-    const token& cur_token() const {
-        return m_token;
-    }
+    const token& cur_token() const;
 
     /**
      * Set the token to be passed to the emitter when the fsm is ran
      * @param tk The token
      */
-    void set_cur_token(const token& tk) {
-        m_token = tk;
-    }
+    void set_cur_token(const token& tk);
 
     /**
      * Get the token buffer)
      * @return
      */
-    std::vector<token>& token_buffer() {
-        return m_tokens_in;
-    }
+    std::vector<token>& token_buffer();
+
+    std::vector<token_type> token_types_buffer() const;
 
     /**
      * Set the current text label, all instructions will be added into the memory block
@@ -54,82 +49,37 @@ public:
      * Note: you can not reuse labels
      * @param label
      */
-    void set_current_text_label(const std::string& label) {
-        if(m_text_labels.count(label)) {
-            std::cout << "warning: label redefinition, the new label will be used instead (" << label << ") " << std::endl;
-        }
+    void set_current_text_label(const std::string& label);
 
-        m_text_labels.at(label) = SECTION_TEXT_BASE + m_text.size();
-    }
 
     /**
-     * Write a binary instruction to .text
-     * This uses the current token_buffer
-     * @param ins   The
-     * @param data
+     * Encode an instruction using the current token buffer and their attributes
+     * @param sequence
+     * @return MIPs instruction
      */
-    bool try_write_instruction(const op_sequence& sequence) {
-        auto mnemonic_pos = sequence.position_of("mnemonic");
-//
-//        if(mnemonic_pos != std::nullopt) {
-//            // This should never happen
-//            std::cout << "Could not determine the position of mneomic" << std::endl;
-//
-//            return false;
-//        }
-
-        auto& mnemonic_token = token_buffer().at(mnemonic_pos.value());
-        auto& mnemonic_name = std::get<std::string>(mnemonic_token.attribute());
-
-//        // if an instruction definition exists for that mnemonic
-//        if(spec::instructions.count(mnemonic_name)) {
-//            auto& instruction_def = spec::instructions.at(mnemonic_name);
-//
-//            // correct operand format
-//            if(instruction_def.m_operand_fmt == seq_kv.first) {
-//
-//            }
-//        }
-//
-//        switch(ins.m_ins_format) {
-//            case spec::R:
-//
-//            break;
-//
-//            case spec::I:
-//            break;
-//        }
-//
-//        binary |= (ins.m_lower_field);
-    }
-
-    std::uint32_t get_text_label(const std::string& label) {
-        return m_text_labels.at(label);
-    }
+    std::optional<std::uint32_t> encode_instruction(const op_sequence& sequence);
 
     /**
-     * Get the error to be shown if the next token did not match what was required
-     * @return The error message
+     *
+     * @param label
+     * @return
      */
-    const std::string get_next_error() const {
-        return m_next_error;
-    }
+
+    std::uint32_t get_text_label(const std::string& label);
+
 
     /**
-     * Set the error to be shown if the next token does not match what is required
-     * i.e. incorrect operands, types, etc...
-     * @param err The error
+     * String stream for errors
+     * @return Ref to error stringstream
      */
-    void set_next_error(const std::string& err) {
-        m_next_error = err;
-    }
+    std::stringstream& errors();
 
 private:
     /* Current token */
     token m_token;
 
 
-    std::string m_next_error;
+    std::stringstream m_errors;
 
     std::vector<token> m_tokens_in;
 
