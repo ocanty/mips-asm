@@ -7,11 +7,14 @@
 
 #include <string>
 #include <unordered_map>
+#include <cstdint>
 
 namespace as
 {
 
-enum class token_type : signed int {
+enum class token_type : std::size_t {
+    TOKEN_TYPE_START = 0,
+
     // A directive .text
     DIRECTIVE,
 
@@ -49,7 +52,10 @@ enum class token_type : signed int {
     NEW_LINE,
 
     // Unknown token
-    INVALID_TOKEN = -1
+    INVALID_TOKEN,
+
+    // Used to get size of enum
+    TOKEN_TYPE_END
 };
 
 /* String map for enum */
