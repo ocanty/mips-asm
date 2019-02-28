@@ -79,7 +79,7 @@ const std::vector<op_sequence> op_sequences::sequences = {
         //                ^-- a literal number
         { t::MNEMONIC, t::REGISTER, t::COMMA, t::REGISTER, t::COMMA, t::LITERAL_NUMBER },
         {
-            { spec::RS_RT_OFFSET, { {"rs", 1}, {"rt", 3}, {"off", 5 } } },
+            { spec::RS_RT_OFFSET, { {"rs", 1}, {"rt", 3}, {"imm", 5 } } },
             { spec::RD_RT_SA,     { {"rd", 1}, {"rt", 3}, {"shamt", 5 } } },
         }
     },
@@ -87,7 +87,7 @@ const std::vector<op_sequence> op_sequences::sequences = {
     {   // op $reg, offset($reg_base)
         {t::MNEMONIC, t::REGISTER, t::COMMA, t::REGISTER, t::COMMA, t::OFFSET, t::BASE_REGISTER },
         {
-            {spec::RS_RT_OFFSET_BASE, { {"rs",1}, {"rt",3}, {"off",5}, {"rd",6} } }
+            {spec::RS_RT_OFFSET_BASE, { {"rs",1}, {"rt",3}, {"imm",5}, {"rd",6} } }
         }
     },
 
@@ -95,7 +95,7 @@ const std::vector<op_sequence> op_sequences::sequences = {
         //              ^-- a literal number
         {t::MNEMONIC, t::REGISTER, t::COMMA, t::LITERAL_NUMBER },
         {
-            { spec::RS_OFFSET, { {"rs", 1}, {"off", 3} } },
+            { spec::RS_OFFSET, { {"rs", 1}, {"imm", 3} } },
             { spec::RT_IMM, { {"rt", 1}, {"imm", 3} } }
         }
     },

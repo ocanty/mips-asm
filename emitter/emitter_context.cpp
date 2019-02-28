@@ -117,6 +117,8 @@ std::optional<std::uint32_t> emitter_context::encode_instruction(const op_sequen
                 }
 
                 // get base value of instruction
+                // this encodes the upper and lower fields for us
+                // i.e the SPECIAL value, and func value for ALU instructions
                 std::uint32_t ins = instruction_def.value().encoded();
 
                 switch(instruction_def.value().instruction_format()) {
@@ -137,10 +139,11 @@ std::optional<std::uint32_t> emitter_context::encode_instruction(const op_sequen
                         return ins;
                     break;
 
+                    case spec::J:
+                        ins |= ((imm & 0b00000011111111111111111111111111));
 
-
-
-
+                        return ins;
+                    break;
                 }
             }
             else {
