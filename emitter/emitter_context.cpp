@@ -140,8 +140,8 @@ std::optional<std::uint32_t> emitter_context::encode_instruction(const op_sequen
                     break;
 
                     case spec::J:
-                        ins |= ((imm & 0b00000011111111111111111111111111));
-
+                        ins |= ((imm & 0x0FFFFFFF) >> 2) & 0b00000011111111111111111111111111;
+                        std::cout << std::bitset
                         return ins;
                     break;
                 }
@@ -163,7 +163,7 @@ std::optional<std::uint32_t> emitter_context::encode_instruction(const op_sequen
         }
     }
     catch(std::bad_variant_access& e) {
-        std::cout << "Bad attribute "
+        errors()  << "Bad attribute "
                   << " near line "
                   << token_buffer().at(0).line()
                   << std::endl;
