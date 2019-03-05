@@ -1,0 +1,23 @@
+language: cpp
+compiler: gcc
+dist: trusty
+
+os: linux
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+    packages:
+      - g++-7
+
+install:
+  - sudo apt-get remove cmake -y
+  - wget -O cmake.sh https://cmake.org/files/v3.13/cmake-3.13.0-Linux-x86_64.sh
+  - sudo sh cmake.sh --skip-license --exclude-subdir --prefix=/usr/local
+
+script:
+  - export CC=gcc-7
+  - export CXX=g++-7
+  - cmake --version
+  - cmake CMakeLists.txt
+  - cmake  --build . --target neat
