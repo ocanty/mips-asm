@@ -1,6 +1,9 @@
 # build dir
 bin/**
 
+.idea
+.idea/**/*
+
 # Prerequisites
 *.d
 
