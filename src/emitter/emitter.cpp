@@ -5,11 +5,11 @@
 
 #include <algorithm>
 #include <cstdint>
-#include "emitter.hpp"
+#include "emitter/emitter.hpp"
 
-#include "../spec/instruction_defs.hpp"
-#include "../fsm/transition.hpp"
-#include "op_sequences.hpp"
+#include "spec/instruction_defs.hpp"
+#include "fsm/transition.hpp"
+#include "emitter/op_sequences.hpp"
 
 namespace as {
 

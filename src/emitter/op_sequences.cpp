@@ -2,8 +2,8 @@
 // Created by ocanty on 06/02/19.
 //
 
-#include "op_sequences.hpp"
-#include "emitter_context.hpp"
+#include "emitter/op_sequences.hpp"
+#include "emitter/emitter_context.hpp"
 #include <map>
 #include <unordered_map>
 

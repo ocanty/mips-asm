@@ -2,7 +2,7 @@
 // Created by ocanty on 28/01/19.
 //
 
-#include "token_type.hpp"
+#include "lexer/token_type.hpp"
 
 namespace as {
 

@@ -5,11 +5,11 @@
 #include <string>
 #include <sstream>
 #include <regex>
-#include "lexer.hpp"
-#include "../fsm/transition.hpp"
-#include "../spec/instruction_defs.hpp"
-#include "../spec/registers.hpp"
-#include "token.hpp"
+#include "lexer/lexer.hpp"
+#include "fsm/transition.hpp"
+#include "spec/instruction_defs.hpp"
+#include "spec/registers.hpp"
+#include "lexer/token.hpp"
 
 namespace as {
 

@@ -2,7 +2,7 @@
 // Created by ocanty on 09/02/19.
 //
 
-#include "instruction_defs.hpp"
+#include "spec/instruction_defs.hpp"
 
 namespace as::spec {
 
