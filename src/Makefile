@@ -70,7 +70,7 @@ rebuild_cache/fast: rebuild_cache
 # Special rule for the target edit_cache
 edit_cache:
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Running CMake cache editor..."
-	/usr/bin/cmake-gui -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR)
+	/usr/bin/ccmake -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR)
 .PHONY : edit_cache
 
 # Special rule for the target edit_cache
@@ -124,33 +124,6 @@ mips_asm: src/CMakeFiles/mips_asm.dir/rule
 mips_asm/fast:
 	cd /home/ocanty/projects/mips-asm && $(MAKE) -f src/CMakeFiles/mips_asm.dir/build.make src/CMakeFiles/mips_asm.dir/build
 .PHONY : mips_asm/fast
-
-__/tests/main.o: __/tests/main.cpp.o
-
-.PHONY : __/tests/main.o
-
-# target to build an object file
-__/tests/main.cpp.o:
-	cd /home/ocanty/projects/mips-asm && $(MAKE) -f src/CMakeFiles/mips_asm.dir/build.make src/CMakeFiles/mips_asm.dir/__/tests/main.cpp.o
-.PHONY : __/tests/main.cpp.o
-
-__/tests/main.i: __/tests/main.cpp.i
-
-.PHONY : __/tests/main.i
-
-# target to preprocess a source file
-__/tests/main.cpp.i:
-	cd /home/ocanty/projects/mips-asm && $(MAKE) -f src/CMakeFiles/mips_asm.dir/build.make src/CMakeFiles/mips_asm.dir/__/tests/main.cpp.i
-.PHONY : __/tests/main.cpp.i
-
-__/tests/main.s: __/tests/main.cpp.s
-
-.PHONY : __/tests/main.s
-
-# target to generate assembly for a file
-__/tests/main.cpp.s:
-	cd /home/ocanty/projects/mips-asm && $(MAKE) -f src/CMakeFiles/mips_asm.dir/build.make src/CMakeFiles/mips_asm.dir/__/tests/main.cpp.s
-.PHONY : __/tests/main.cpp.s
 
 emitter/emitter.o: emitter/emitter.cpp.o
 
@@ -350,9 +323,6 @@ help:
 	@echo "... rebuild_cache"
 	@echo "... mips_asm"
 	@echo "... edit_cache"
-	@echo "... __/tests/main.o"
-	@echo "... __/tests/main.i"
-	@echo "... __/tests/main.s"
 	@echo "... emitter/emitter.o"
 	@echo "... emitter/emitter.i"
 	@echo "... emitter/emitter.s"

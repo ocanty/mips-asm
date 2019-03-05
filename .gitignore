@@ -1,6 +1,9 @@
 # build dir
 bin/**
 
+.idea
+.idea/**/*
+
 # Prerequisites
 *.d
 
@@ -44,6 +47,8 @@ CMakeFiles
 CMakeScripts
 Testing
 Makefile
+*/Makefile
+*/**/Makefile
 cmake_install.cmake
 install_manifest.txt
 compile_commands.json
