@@ -434,12 +434,12 @@ void lexer::setup_fsm() {
 
 std::optional<std::vector<token>> lexer::lex(const std::string &input) {
 
+    if(input == "") return { };
+
     lexer_context lex;
 
     // create a stringstream so we can read line by line below
-    // the newline we add is a cautionary measure to ensure the last statement
-    // finishes on a newline rather than EOF
-    std::stringstream ss(input + '\n');
+    std::stringstream ss(input);
     std::size_t cur_line = 0;
     std::string cur_line_str;
 

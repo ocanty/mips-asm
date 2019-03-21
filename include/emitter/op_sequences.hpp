@@ -44,6 +44,8 @@ public:
     using operand_locations =
         std::unordered_map<spec::operand_def_format, std::unordered_map<std::string, std::size_t>>;
 
+    op_sequence() = default;
+
     op_sequence(
         const std::vector<token_type>& token_type,
         const operand_locations& locations

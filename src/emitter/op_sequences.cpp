@@ -3,7 +3,7 @@
 //
 
 #include "emitter/op_sequences.hpp"
-#include "emitter/emitter_context.hpp"
+#include "emitter/emitter.hpp"
 #include <map>
 #include <unordered_map>
 
@@ -81,6 +81,7 @@ const std::vector<op_sequence> op_sequences::sequences = {
         {
             { spec::RS_RT_OFFSET, { {"rs", 1}, {"rt", 3}, {"imm", 5 } } },
             { spec::RD_RT_SA,     { {"rd", 1}, {"rt", 3}, {"shamt", 5 } } },
+            { spec::RT_RS_IMM,    { {"rt", 1}, {"rs", 3}, {"imm", 5 } } },
         }
     },
 
@@ -101,10 +102,20 @@ const std::vector<op_sequence> op_sequences::sequences = {
     },
 
 
-    {
+    {   // op number
+        // e.g. j 80
         {t::MNEMONIC, t::LITERAL_NUMBER },
         {
-            {spec::TARGET, { {"imm", 1 } } }
+            {spec::TARGET, { {"imm", 1 } } },
+        }
+    },
+
+    {
+        // op label
+        // e.g. j main
+        {t::MNEMONIC, t::LABEL },
+        {
+            {spec::TARGET, { {"label", 1 } } },
         }
     },
 
