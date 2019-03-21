@@ -110,7 +110,7 @@ public:
     std::uint32_t encoded() {
         std::uint32_t result = 0;
         result |= m_upper_field;
-        result <<= (32-5);
+        result <<= (31-5);
         result |= m_lower_field;
         std::cout << std::bitset<32>(result).to_string() << std::endl;
         return result;
@@ -119,8 +119,8 @@ private:
     instruction_def_format  m_ins_format;
     operand_def_format      m_operand_fmt;
 
-    std::uint8_t m_upper_field;
-    std::uint8_t m_lower_field;
+    std::uint8_t m_upper_field = 0;
+    std::uint8_t m_lower_field = 0;
 };
 
 /**

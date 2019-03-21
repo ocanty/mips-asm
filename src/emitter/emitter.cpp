@@ -1,155 +1,104 @@
 //
-// Created by ocanty on 27/01/19.
+// Created by ocanty on 09/02/19.
 //
 
-
-#include <algorithm>
-#include <cstdint>
 #include "emitter/emitter.hpp"
+#include "emitter/encode.hpp"
 
-#include "spec/instruction_defs.hpp"
-#include "fsm/transition.hpp"
-#include "emitter/op_sequences.hpp"
+#include <iostream>
+#include <algorithm>
+#include <numeric>
+#include <memory>
+
+#include <elf.h>
 
 namespace as {
 
-emitter::emitter() :
-    m_fsm(INITIAL_STATE) {
-    this->setup_fsm();
-}
+std::optional<std::vector<std::uint8_t>>
+emit(const std::vector<as::token> &tokens) {
 
-std::optional<std::vector<std::uint8_t>> emitter::emit(const std::vector<token>& tokens) {
-    if(tokens.empty()){
-        return std::nullopt;
-    }
+    constexpr std::uint32_t SECTION_TEXT_BASE = 0x00000000004000f0;
 
-    emitter_context em(tokens.at(0));
+//    Elf32_Ehdr elf_header = {
+//        .e_ident = {ELFMAG0, ELFMAG1, ELFMAG2, ELFMAG3, ELFCLASS32, ELFDATA2MSB, EV_CURRENT, ELFOSABI_SYSV, 0,
+//                    0, 0, 0, 0, 0, 0, 0 },
+//        .e_type = ET_EXEC,
+//        .e_machine = EM_MIPS,
+//        .e_version = EV_CURRENT,
+//        .e_entry = SECTION_TEXT_BASE,
+//        .e_phoff = sizeof(Elf32_Ehdr),
+//        .e_shoff = 0,
+//        .e_flags = 0,
+//        .e_ehsize = sizeof(Elf32_Ehdr),
+//
+//
+//    };
 
-    // feed each token into the fsm
+    enum assembly_mode {
+        TEXT,
+        DATA
+    };
+
+    enum assembly_pass {
+        PASS_ONE,   // we use this pass to determine where to place code blocks, all labels in this default to 0
+        PASS_TWO    // the second pass rewrites the labels to point to where we placed the previous code blocks
+    };
+
+    assembly_mode mode = TEXT;
+    assembly_pass pass = PASS_ONE;
+
+    std::unordered_map<std::string, std::uint32_t> labels;
+    std::vector<token> token_buffer;
+
     for(auto& tk : tokens) {
-        em.set_cur_token(tk);
 
-        m_fsm.tick(em);
+//        // if directive encountered
+//        if(tk.type() == token_type::DIRECTIVE) {
+//            auto& directive = std::get<std::string>(tk.attribute());
+//
+//            // swap to respective modes
+//            if(directive == "text") {
+//                mode = TEXT;
+//                break;
+//            }
+//
+//            if(directive == "data") {
+//                mode = DATA;
+//                break;
+//            }
+//
+//            continue;
+//        }
+
+        // keep fetching tokens until we encounter the end of a sequence
+        if(tk.type() != token_type::NEW_LINE) {
+            token_buffer.emplace_back(tk);
+        }
+        else { // if we encountered the end of a sequence of tokens (delimited by new lines)
+            switch(mode) {
+                case TEXT:
+
+
+
+                break;
+
+                case DATA:
+                break;
+            }
+        }
+
     }
 
-    if(em.errors().str().size() > 0) {
-        std::cout << em.errors().str() << std::endl;
-        return std::nullopt;
-    }
-
-    return std::vector<std::uint8_t>();
-
+    return std::nullopt;
 }
 
-void emitter::setup_fsm() {
-
-    // returns an fsm should_transition_func
-    // that transitions if a DIRECTIVE token is read matching the directive name
-    auto match_directive = [](const std::string& directive) -> auto {
-        return transition<std::size_t, emitter_context>::should_transition_func(
-            [=](emitter_context& em) -> bool {
-                if(em.cur_token().type() == token_type::DIRECTIVE &&
-                    std::get<std::string>(em.cur_token().attribute()) == directive) {
-
-                    // em.set_next_error("Expected labels, instruction or data definition");
-                    return true;
-                }
-
-                // .set_next_error("Expected a directive, probably: " + directive);
-                return false;
-            }
-        );
-    };
-
-    // push current token to buffer
-    auto push_buffer = [](emitter_context& em) {
-        em.token_buffer().emplace_back(em.cur_token());
-    };
-
-    // helper func to clear buffer (fsm callback)
-    auto clear_buffer = [](emitter_context& em) {
-        em.token_buffer().clear();
-    };
-
-
-    m_fsm.add_transitions({
-
-    // Enter text state when we encounter .text
-    {
-        INITIAL_STATE,
-        TEXT_STATE,
-        match_directive("text")
-    },
-
-    // Enter data state when we encounter .data
-    {
-        INITIAL_STATE,
-        DATA_STATE,
-        match_directive("data")
-    },
-
-    // Ignore newlines
-    {
-        TEXT_STATE,
-        TEXT_STATE,
-        [](emitter_context& em) -> bool {
-            return (em.cur_token().type() == token_type::NEW_LINE);
-        }
-    },
-
-    // If we encounter a token that isn't a new line, begin seeking the sequence
-    {
-        TEXT_STATE,
-        TEXT_SEEK_UNTIL_NEWLINE,
-        [](emitter_context& em) -> bool {
-            return (em.cur_token().type() != token_type::NEW_LINE);
-        },
-        push_buffer
-    },
-
-    // Continue seeking if we don't encounter the newline delimiter
-    {
-        TEXT_SEEK_UNTIL_NEWLINE,
-        TEXT_SEEK_UNTIL_NEWLINE,
-        [](emitter_context& em) -> bool {
-            return (em.cur_token().type() != token_type::NEW_LINE);
-        },
-        push_buffer
-    },
-
-
-    // If we encountered the new line delimiter, it's time to check the validity
-    // of the sequence
-    {
-        TEXT_SEEK_UNTIL_NEWLINE,
-        TEXT_STATE,
-        [](emitter_context& em) -> bool {
-            return (em.cur_token().type() == token_type::NEW_LINE);
-        },
-
-        [](emitter_context& em) {
-            for(auto& seq : op_sequences::all()) {
-                if(em.token_types_buffer() == seq.token_types()) {
-                    em.encode_instruction(seq);
-
-                    em.token_buffer().clear();
-
-                    return;
-                }
-            }
-
-            em.errors() << "Unknown sequence of tokens ";
-
-            if(em.token_buffer().size() > 0) {
-                em.errors() << "near line "
-                            << em.token_buffer().at(0).line()
-                            << " ";
-            }
-
-            em.errors() << std::endl;
-        }
+/**
+ *     if(m_text_labels.count(label)) {
+        std::cout << "warning: label redefinition, the new label will be used instead ("
+                  << label
+                  << ") "
+                  << std::endl;
     }
-    });
-}
 
+ */
 }
