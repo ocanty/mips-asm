@@ -98,8 +98,7 @@ void lexer::setup_fsm() {
     },
 
     {
-        states::BASE,
-        states::BASE,
+        states::BASE, states::BASE,
         match_pattern("[\\n]"),
         [&](lexer_context& lex) -> void {
             lex.push_token(token_type::NEW_LINE);
@@ -108,14 +107,14 @@ void lexer::setup_fsm() {
         
     // Begin directive - '.data'
     {
-        states::BASE,
-        states::SEEK_DIRECTIVE,
+        states::BASE, states::SEEK_DIRECTIVE,
         match_pattern("[\\.]")
     },
 
     // Eat directive - '.data'
     //                   ^^^^
-    { states::SEEK_DIRECTIVE, states::SEEK_DIRECTIVE,
+    {
+        states::SEEK_DIRECTIVE, states::SEEK_DIRECTIVE,
         match_pattern("[a-zA-Z]"),
         consume_char
     },
@@ -123,8 +122,7 @@ void lexer::setup_fsm() {
     // Finish directive - '.data\n' or '.data '
     //                          ^^           ^
     {
-        states::SEEK_DIRECTIVE,
-        states::BASE,
+        states::SEEK_DIRECTIVE, states::BASE,
         match_pattern("[ ]|[\\n]"),
         [&](lexer_context& lex) -> void {
             lex.push_token(token_type::DIRECTIVE, lex.char_buffer().str());
@@ -139,8 +137,7 @@ void lexer::setup_fsm() {
     // Invalid directive '.data./$'
     //                         ^^^
     {
-        states::SEEK_DIRECTIVE,
-        states::INVALID_TOKEN,
+        states::SEEK_DIRECTIVE, states::INVALID_TOKEN,
         not_match_pattern("[a-zA-Z]|[ ]|[\\n]"),
         push_invalid_token("Invalid directive characters")
     },
@@ -150,8 +147,7 @@ void lexer::setup_fsm() {
     // We determine if it's a label or instruction when we reach the terminating character
     // i.e the space or new line
     {
-        states::BASE,
-        states::SEEK_LABEL_OR_MNEMONIC,
+        states::BASE, states::SEEK_LABEL_OR_MNEMONIC,
         match_pattern("[_a-zA-Z]"),
         consume_char
     },
@@ -159,8 +155,7 @@ void lexer::setup_fsm() {
     // Eat label or mnemonic - 'mov ' or 'mov\n' or 'movie_label ' or 'movie_label\n'
     //                           ^^        ^^         ^^^^^^^^^^        ^^^^^^^^^^
     {
-        states::SEEK_LABEL_OR_MNEMONIC,
-        states::SEEK_LABEL_OR_MNEMONIC,
+        states::SEEK_LABEL_OR_MNEMONIC, states::SEEK_LABEL_OR_MNEMONIC,
         match_pattern("[_a-zA-Z0-9]"),
         consume_char
     },
@@ -170,8 +165,7 @@ void lexer::setup_fsm() {
     // Here we need to check if it's a instruction first,
     // and if it isn't it's a label
     {
-        states::SEEK_LABEL_OR_MNEMONIC,
-        states::BASE,
+        states::SEEK_LABEL_OR_MNEMONIC, states::BASE,
         match_pattern("[ ]|[\\n]"),
         [&](lexer_context &lex) -> void {
             auto char_buffer = lex.char_buffer().str();
@@ -195,8 +189,7 @@ void lexer::setup_fsm() {
     // If a semi-colon follows the label, it's actually a label definition
     //
     {
-        states::SEEK_LABEL_OR_MNEMONIC,
-        states::BASE,
+        states::SEEK_LABEL_OR_MNEMONIC, states::BASE,
         match_pattern("[:]"),
         [&](lexer_context& lex) -> void {
             auto char_buffer = lex.char_buffer().str();
@@ -215,45 +208,39 @@ void lexer::setup_fsm() {
     // Invalid directive '.data./$'
     //                         ^^^
     {
-        states::SEEK_DIRECTIVE,
-        states::INVALID_TOKEN,
+        states::SEEK_DIRECTIVE, states::INVALID_TOKEN,
         not_match_pattern("[a-zA-Z]|[ ]|[\\n]"),
         push_invalid_token("Invalid directive characters")
     },
 
     // Comments, we ignore till newline
     {
-        states::BASE,
-        states::SEEK_COMMENT,
+        states::BASE, states::SEEK_COMMENT,
         match_pattern("[#]")
     },
 
     // matches everything inside a comment
     {
-        states::SEEK_COMMENT,
-        states::SEEK_COMMENT,
+        states::SEEK_COMMENT, states::SEEK_COMMENT,
         match_pattern("[.]")
     },
 
     // exit comment seeking on newline
     {
-        states::SEEK_COMMENT,
-        states::BASE,
+        states::SEEK_COMMENT, states::BASE,
         match_pattern("[\\n]")
     },
 
     // Register $reg
     //          ^
     {
-        states::BASE,
-        states::SEEK_REGISTER,
+        states::BASE, states::SEEK_REGISTER,
         match_pattern("[\\$]")
     },
 
     {
         // seek each character of the register declaration
-        states::SEEK_REGISTER,
-        states::SEEK_REGISTER,
+        states::SEEK_REGISTER, states::SEEK_REGISTER,
         match_pattern("[a-z0-9]"),
         consume_char
     },
@@ -261,8 +248,7 @@ void lexer::setup_fsm() {
     // When we reach the end of a register declaration
     // delimited by "," or " " or "\n"
     {
-        states::SEEK_REGISTER,
-        states::BASE,
+        states::SEEK_REGISTER, states::BASE,
         match_pattern("[,| |\\n]"),
         [&](lexer_context &lex) {
             auto char_buffer = lex.char_buffer().str();
@@ -287,22 +273,19 @@ void lexer::setup_fsm() {
     },
 
     {
-        states::BASE,
-        states::SEEK_LITERAL_STRING,
+        states::BASE, states::SEEK_LITERAL_STRING,
         match_pattern("[\"]")
     },
 
     {
-        states::SEEK_LITERAL_STRING,
-        states::SEEK_LITERAL_STRING,
+        states::SEEK_LITERAL_STRING, states::SEEK_LITERAL_STRING,
         not_match_pattern("[\"]"),
         consume_char
     },
 
 
     {
-        states::SEEK_LITERAL_STRING,
-        states::BASE,
+        states::SEEK_LITERAL_STRING, states::BASE,
         match_pattern("[\"]"),
         [&](lexer_context &lex) {
             auto char_buffer = lex.char_buffer().str();
@@ -313,22 +296,19 @@ void lexer::setup_fsm() {
 
 
     {
-        states::BASE,
-        states::SEEK_LITERAL_CHAR,
+        states::BASE, states::SEEK_LITERAL_CHAR,
         match_pattern("[']")
     },
 
     {
-        states::SEEK_LITERAL_CHAR,
-        states::SEEK_LITERAL_CHAR,
+        states::SEEK_LITERAL_CHAR, states::SEEK_LITERAL_CHAR,
         not_match_pattern("[']"),
         consume_char
     },
 
 
     {
-        states::SEEK_LITERAL_CHAR,
-        states::BASE,
+        states::SEEK_LITERAL_CHAR, states::BASE,
         match_pattern("[']"),
         [&](lexer_context &lex) {
             auto char_buffer = lex.char_buffer().str();
@@ -344,22 +324,19 @@ void lexer::setup_fsm() {
 
 
     {
-        states::BASE,
-        states::SEEK_LITERAL_NUMBER,
+        states::BASE, states::SEEK_LITERAL_NUMBER,
         match_pattern("[\\-|0-9|\\+]"),
         consume_char
     },
 
     {
-        states::SEEK_LITERAL_NUMBER,
-        states::SEEK_LITERAL_NUMBER,
+        states::SEEK_LITERAL_NUMBER, states::SEEK_LITERAL_NUMBER,
         match_pattern("[0-9]"),
         consume_char
     },
 
     {
-        states::SEEK_LITERAL_NUMBER,
-        states::BASE,
+        states::SEEK_LITERAL_NUMBER, states::BASE,
         match_pattern("[ |\\n]"),
         [&](lexer_context &lex) {
              auto char_buffer = lex.char_buffer().str();
@@ -380,8 +357,7 @@ void lexer::setup_fsm() {
     },
 
     {
-        states::SEEK_LITERAL_NUMBER,
-        states::SEEK_IMM_REG_PRE,
+        states::SEEK_LITERAL_NUMBER, states::SEEK_IMM_REG_PRE,
         match_pattern("[(]"),
         [&](lexer_context &lex) {
              auto char_buffer = lex.char_buffer().str();
@@ -397,23 +373,18 @@ void lexer::setup_fsm() {
     },
 
     {
-        states::SEEK_IMM_REG_PRE,
-        states::SEEK_IMM_REG,
+        states::SEEK_IMM_REG_PRE, states::SEEK_IMM_REG,
         match_pattern("[$]")
     },
 
     {
-        states::SEEK_IMM_REG,
-        states::SEEK_IMM_REG,
+        states::SEEK_IMM_REG, states::SEEK_IMM_REG,
         match_pattern("[a-zA-Z]"),
-        [&](lexer_context &lex) {
-            lex.consume(lex.ch());
-        }
+        consume_char
     },
 
     {
-        states::SEEK_IMM_REG,
-        states::BASE,
+        states::SEEK_IMM_REG, states::BASE,
         match_pattern("[)]"),
         [&](lexer_context &lex) {
             auto char_buffer = lex.char_buffer().str();
